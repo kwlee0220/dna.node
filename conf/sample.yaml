@@ -1,0 +1,100 @@
+id: etri:05                 # 필수: node의 식별자. (예: etri:05)
+
+camera:
+  uri: <camera uri>         # 필수: 캡쳐 대상 camera 식별자.
+                            # Local camera: 카메라 번호 (예: 0)
+                            # 동영상: 동영상 파일 경로 (예: data/2021/etri_05.mp4)
+                            # RTSP: RTSP URL (예: rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/5/media.smp)
+  size: [1024, 768]         # 옵션: 캡쳐할 카메라 영상의 크기 (예: [1024, 768])
+                            # 기본값: Source 카메라 영상 크기
+  sync: <True or False>     # 옵션: 동영상을 사용하는 경우, 지정된 FPS에 맞춰 이미지 캠쳐 수행 여부
+                            # 기본값: True
+  begin_frame: <frame-#>    # 옵션: 동영상을 사용하는 경우 시작 frame 번호. (예: 234)
+                            # 기본값: 0
+  end_frame: <frame-#>      # 옵션: 동영상을 사용하는 경우 마지막 frame **다음** 번호. (예: 543)
+                            # 기본값: 동영상의 마지막 frame 번호 + 1
+
+tracker:
+  draw:                       # 추적 영상 출력시 display할 zone들의 종류 나열
+                              # 사용 가능한 zone 종류는 "tracks", "track_zones", "exit_zones",
+                              # "blind_zones" "stable_zone"가 있다. (예: ["tracks", "track_zones"])
+  detector: 'dna.detect.yolov5:model=l6&score=0.01&agnostic=True&max_det=50&classes=car,bus,truck'
+                              # 옵션: 물체 검출기 식별자.
+  detection_classes: ['car', 'bus', 'truck']  # 옵션: 추적 대상 물체의 class들.
+  detection_confidence: 0.37  # 옵션: 추적 대상 유력 물체로 간주하는 confidence 값.
+                              #   이 값보다 작은 confidence로 검출되는 물체의 경우 weak track으로 간주됨.
+  detection_min_size:         # 옵션: 검출된 물체 중 추적 대상으로 설정하기 위한 최소 bounding box 크기.
+                              #   (예: [15, 15], 15x15)
+                              #   별도로 지정하지 않으면 모든 크기의 detection을 추적 대상으로 간주.
+  detection_max_size:         # 옵션: 검출된 물체 중 추적 대상으로 설정하기 위한 최대 bounding box 크기.
+                              #   (예: [1000, 1000], 1000x1000)
+                              #   별도로 지정하지 않으면 모든 크기의 detection을 추적 대상으로 간주.
+  drop_border_detections: False  # 옵션: 영상 외곽에 근접한 detection을 추적 대상으로 삼을지 여부.
+  n_init: 3                 # 옵션: 검출된 이동체를 정식 추적 대상으로 확정하기 전까지 연속 추적 성공 frame 수.
+                            #   기본값: 3 (연속 3 프레임동안 추적에 성공해야 추적 대상으로 간주.)
+  max_age: 10               # 옵션: 추적 중인 이동체의 추적을 포기하기 위한 미 검출 프레임 횟수.
+                            #   지정된 횟수만큼 연속된 프레임에서 대상 이동체 추적에 실패한 경우,
+                            #   해당 물체가 사라진 것으로 간주함. (기본값: 10)
+
+  track_zones:              # 옵션: 추적 대상 영역
+    - [[85, 593], [674, 367], [713, 322], [670, 293], [675, 180], [1245, 258], [1790, 434],
+      [1764, 562], [1420, 534], [1187, 933], [235, 876]]
+  magnifying_zones:         # 옵션: 미축소 추적 영역 설정
+    - [0, 420, 640, 1060]
+  exit_zones:               # 옵션: Exit 영역 설정
+    - [553, 177, 703, 316]  # 12동 방향
+    - [1700, 388, 1900, 570]  # 7동 방향
+    - [[103, 521], [347, 822], [372, 1078], [284, 1079], [0, 1080], [2, 521]] # 정문 방향
+  stable_zones:             # 옵션: 
+    - [[111, 496], [328, 667], [-25, 812], [-17, 530], [64, 503]]
+
+sql_connection: &postgresql_connection
+  host: localhost
+  port: 5432
+  dbname: dna
+  user: dna
+  password: urc2004
+
+local_kafka_connection: &local_kafka_connection
+  bootstrap_servers: [localhost:9092]
+dna_kafka_connection: &dna_kafka_connection
+  bootstrap_servers: [kafka01:9092, kafka02:9092, kafka03:9092]
+
+publishing:
+  tick_interval: 1.0
+  refine_tracks:
+    buffer_size: 15
+    buffer_timeout: 2
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: regions/etri_testbed/etri_testbed.json
+    camera_index: 1
+  zone_pipeline:
+    zones:
+      A: [[1126, 249], [660, 194], [644, 333], [937, 349], [1126, 249]]
+      B: [[1245, 273], [1345, 545], [1761, 561], [1806, 412], [1245, 273]]
+      C: [[609, 358], [1388, 584], [1165, 1064], [177, 936], [40, 530], [609, 358]]
+    motions:
+      'AB': 'AB'
+      'AC': 'AC'
+      'BA': 'BA'
+      'BC': 'BC'
+      'CA': 'CA'
+      'CB': 'CB'
+
+  plugins:
+    publish_tracks:
+      <<: *local_kafka_connection
+      topic: 'node-tracks'
+    publish_motions:
+      <<: *local_kafka_connection
+      topic: 'track-motions'
+    publish_features:
+      distinct_distance: 0.2
+      min_crop_size: 80x80
+      <<: *local_kafka_connection
+      topic: 'track-features'
+
+  # plugins:
+  #   local_path:
+  #     max_path_length: 100

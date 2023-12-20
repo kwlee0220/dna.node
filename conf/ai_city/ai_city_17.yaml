@@ -1,0 +1,17 @@
+id: ai_city:17
+
+camera:
+  uri: data/ai_city/ai_city_17.mp4
+  sync: False
+  # begin_frame: 1265
+  end_frame: 3000
+
+tracker:
+  detector: dna.detect.yolov5:model=l6&score=0.1&agnostic=True&max_det=50&classes=car,bus,truck
+  draw: ["tracks", "track_zones"]
+  detection_threshold: 0.5
+  max_age: 30
+  track_zones:
+    - [[0,224], [1916,222], [1916,1076], [2,1072]]
+  exit_zones:
+    - [[796, 120], [1285, 224]]   # 윗면

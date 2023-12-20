@@ -1,0 +1,31 @@
+id: ai_city:03
+
+camera:
+  uri: data/ai_city/ai_city_03.mp4
+  sync: False
+  # begin_frame: 40
+  end_frame: 3000
+
+tracker:
+  detector: dna.detect.yolov5:model=l6&score=0.1&agnostic=True&max_det=50&classes=car,bus,truck
+  draw: ["tracks", "track_zones"]
+  track_zones:
+    - [[1,191], [1279,86], [1278,623], [1,629]]
+  exit_zones:
+    - [1250, 100, 1280, 700]  # 오른쪽 출구
+    - [0, 300, 25, 600]     # 왼쪽 출구
+
+publishing:
+  refine_buffer_size: 60
+  min_path_length: 10
+  plugins:
+    zone_pipeline:
+      zones:
+        0: [[981, 413], [982, 531], [1065, 534], [1061, 415]]
+        1: [[1026, 181], [1112, 167], [1137, 294], [1051, 311]]
+        2: [[33, 361], [108, 351], [136, 536], [55, 547]]
+      zone_sequence_patterns:
+          '1': '[^1]*1$'
+          '3': '^.*7.*3$'
+          '2': '^[^7]*3$'
+          '4': '^4.*5$'

@@ -1,0 +1,37 @@
+id: ai_city:10
+
+camera:
+  uri: data/ai_city/ai_city_10.mp4
+  sync: False
+  # begin_frame: 1265
+  end_frame: 3000
+
+tracker:
+  draw: ["tracks", "track_zones"]
+  track_zones:
+    - [[2,228], [1916,300], [1916,1076], [2,1074]]
+  blind_zones:
+    - [0, 850, 1920, 1080]  # 아랫면
+  exit_zones:
+    - [[1406, 282], [1768, 294], [1643, 236], [1334, 229]]   # 윗면
+    - [0, 850, 1920, 1080]   # 아랫면
+    - [0, 396, 80, 1080]      # 왼쪽면
+
+publishing:
+  refine_buffer_size: 30
+  min_path_length: 10
+  plugins:
+    zone_pipeline:
+      zones:
+        0: [[153, 387], [206, 518], [1176, 540]]
+        1: [[1326, 894], [1498, 517]]
+        2: [[81, 740], [1349, 740]]
+        3: [[103, 348], [143, 728]]
+      motions:
+        '03': 1
+        '02': 2
+        '01': 3
+        '21': X
+        '13': X
+        '23': X
+        '1': X

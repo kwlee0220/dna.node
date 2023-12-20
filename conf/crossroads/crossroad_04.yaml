@@ -1,0 +1,17 @@
+id: crossroad:04
+
+camera:
+  uri: data/crossroads/crossroad_04.mp4
+  sync: False
+  begin_frame: 52
+  # end_frame: 1000
+
+tracker:
+  detector: dna.detect.yolov5:model=l6&score=0.01
+  draw_zones: True
+  blind_zones:
+    - [[700, 1], [701, 113], [790, 139], [645, 489], [228, 584], [1, 598], [1, 1]]
+    - [[1138, 1], [1165, 28], [1343, 43], [1345, 117], [1264, 136], [1539, 402], [1919, 497], [1918, 3]]
+    - [[1700, 476], [1700, 1074], [1919, 1077], [1919, 478]]
+  exit_zones:
+    - [[1338, 32], [1341, 126], [1379, 127], [1376, 32]]

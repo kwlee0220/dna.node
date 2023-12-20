@@ -1,0 +1,21 @@
+id: ai_city:16
+
+camera:
+  uri: data/ai_city/ai_city_16.mp4
+  sync: False
+  # begin_frame: 1265
+  end_frame: 3000
+
+tracker:
+  detector: dna.detect.yolov5:model=l6&score=0.1&agnostic=True&max_det=50&classes=car,bus,truck
+  draw: ["tracks", "track_zones"]
+  detection_threshold: 0.5
+  max_age: 30
+  track_zones:
+    - [[2,198], [1918,216], [1916,1074], [2,1072]]
+  blind_zones:
+    - [[0, 950], [1920, 1080]] # 아래쪽 면
+  exit_zones:
+    - [800, 40, 1100, 210]   # 윗면
+    - [0, 950, 960, 1080] # 아래쪽 면
+    - [0, 300, 90, 480]  # 왼쪽 출구

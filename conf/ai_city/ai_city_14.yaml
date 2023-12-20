@@ -1,0 +1,12 @@
+id: ai_city:14
+
+camera:
+  uri: data/ai_city/ai_city_14.mp4
+  sync: False
+  # begin_frame: 1265
+  end_frame: 3000
+
+tracker:
+  draw: ["tracks", "track_zones"]
+  track_zones:
+    - [[2,870], [2554,1108], [2556,1912], [2,1912]]

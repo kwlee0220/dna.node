@@ -1,0 +1,14 @@
+id: ai_city:18
+
+camera:
+  uri: data/ai_city/ai_city_18.mp4
+  sync: False
+  # begin_frame: 1265
+  end_frame: 3000
+
+tracker:
+  draw: ["tracks", "track_zones"]
+  track_zones:
+    - [[4,276], [1920,280], [1918,1078], [2,1072]]
+  exit_zones:
+    - [910, 188, 1290, 280]   # 윗면

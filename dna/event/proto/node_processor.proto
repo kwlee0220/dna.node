@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package dna.node.proto;
+
+
+service NodeProcessor {
+    rpc Run(RunNodeProcessRequest) returns (stream StatusReport) {}
+    rpc Stop(StopNodeProcessRequest) returns (StatusReport) {}
+}
+
+message RunNodeProcessRequest {
+    oneof conf {
+        string node_id = 1;
+        string conf_path = 2;
+    }
+    optional string camera_uri = 3;
+    optional bool sync = 4;
+    optional int32 report_interval = 5;
+}
+
+message StopNodeProcessRequest {
+    string proc_id = 1;
+}
+
+enum Status {
+    STARTED = 0;
+    RUNNING = 1;
+    FINISHED = 2;
+    STOPPED = 3;
+}
+
+message StartedStatus { int64 ts = 1; }
+message RunningStatus { int64 frame_index = 1; int64 ts = 2; }
+message StoppedStatus { int64 ts = 1; }
+message StatusReport {
+    string proc_id = 1;
+    Status status = 2;
+    oneof details {
+        StartedStatus started = 3;
+        RunningStatus running = 4;
+        StoppedStatus stopped = 5;
+    }
+}

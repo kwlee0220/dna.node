@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "dna.node.proto";
+
+package dna.node.proto;
+
+
+message TrackFeatureProto {
+    string node_id = 1;
+    string track_id = 2;
+		repeated float feature = 3;
+		int64 frame_index = 4;
+    int64 ts = 5;
+};
+
+
+message LocalizationProto {
+  float location_x = 1;
+  float location_y = 2;
+  float distance = 3;
+};
+
+message NodeTrackProto {
+  string node_id = 1;
+  string track_id = 2;
+  string state = 3;
+  repeated float bbox_tlbr = 4;
+  int64 first_ts = 5;
+  int64 frame_index = 6;
+  int64 ts = 7;
+  optional LocalizationProto localization = 8;
+  optional string zone_expr = 9;
+};

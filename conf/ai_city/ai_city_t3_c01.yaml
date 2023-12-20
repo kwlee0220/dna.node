@@ -1,0 +1,20 @@
+id: ai_city:t3_c01
+
+camera:
+  uri: data/ai_city/ai_city_t3_c01.avi
+  sync: False
+  # begin_frame: 1265
+  end_frame: 3000
+
+tracker:
+  draw: ["tracks", "track_zones"]
+  track_zones:
+    - [[85, 352], [840, 280], [1239, 280], [1816, 352], [1826, 962], [89, 961]]
+  exit_zones:
+    - [1050, 200, 1245, 280]  # 위쪽 출구
+    - [1815, 335, 1920, 1080] # 오른쪽 출구
+    - [0, 960, 1920, 960]     # 아랫쪽 출구
+    - [0, 350, 90, 960]       # 왼쪽 출구
+publishing:
+  refine_buffer_size: 30
+  min_path_length: 10

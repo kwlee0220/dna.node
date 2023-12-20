@@ -1,0 +1,53 @@
+id: etri:04
+
+camera:
+  # uri: data/2021/etri_04.mp4
+  uri: data/2022/etri_041.mp4
+  sync: False
+  # begin_frame: 80
+  init_ts: 0
+
+tracker:
+  model_file: models/deepsort/model640.pt
+  drop_border_detections: true
+  draw: ['tracks', 'track_zones']
+  track_zones:
+    - [[1160, 412], [906, 1080], [5, 894], [0, 730], [967, 367], [982, 323], [1145, 336]]
+  magnifying_zones:
+    - [600, 300, 1240, 940]
+  exit_zones:
+    - [[984, 317], [965, 373], [927, 370], [946, 310]]  # 12쪽 방향
+    - [[1160, 412], [1146, 335], [1184, 314], [1212, 399]]  # 7동쪽 방향
+    # - [[432, 824], [218, 644], [3, 694], [4, 1076], [120, 1072]]
+
+publishing:
+  refine_tracks:
+    buffer_size: 7
+    buffer_timeout: 0.8
+  min_path_length: 5
+  attach_world_coordinates:
+    camera_geometry: conf/etri_testbed/localization_etri_testbed.json
+    camera_index: 3
+  zone_pipeline:
+    draw: true
+    zones:
+      A: [[1015, 313], [989, 369], [969, 379], [927, 382], [985, 314]]
+      B: [[1112, 323], [1115, 352], [1175, 412], [1163, 329], [1105, 323]]
+      C: [[658, 465], [1150, 538], [1058, 922], [200, 633], [658, 465]]
+    # motions:
+    #   'AB': 'AB'
+    #   'AC': 'AC'
+    #   'BA': 'BA'
+    #   'BC': 'BC'
+    #   'CA': 'CA'
+    #   'CB': 'CB'
+
+  plugins:
+    kafka_brokers: [localhost:9092]
+    publish_tracks:
+      topic: 'node-tracks'
+    publish_features:
+      topic: 'track-features'
+      distinct_distance: 0.35
+      min_crop_size: 60x35
+      max_iou: 0.2

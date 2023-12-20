@@ -1,0 +1,14 @@
+id: ai_city:20
+
+camera:
+  uri: data/ai_city/ai_city_20.mp4
+  sync: False
+  # begin_frame: 1265
+  end_frame: 3000
+
+tracker:
+  draw: ["tracks", "track_zones"]
+  track_zones:
+    - [[4,512], [1918,454], [1916,1076], [2,1074]]
+  exit_zones:
+    - [454, 900, 1920, 1080]   # 아래면

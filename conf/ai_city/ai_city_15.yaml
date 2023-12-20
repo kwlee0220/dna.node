@@ -1,0 +1,15 @@
+id: ai_city:15
+
+camera:
+  uri: data/ai_city/ai_city_15.mp4
+  sync: False
+  # begin_frame: 1265
+  end_frame: 3000
+
+tracker:
+  draw: ["tracks", "track_zones"]
+  max_age: 30
+  track_zones:
+    - [[4,282], [858,200], [1918,360], [1916,1074], [2,1074]]
+  exit_zones:
+    - [[550, 230], [742, 212], [658, 186], [488, 207]]  # 윗쪽 방향
