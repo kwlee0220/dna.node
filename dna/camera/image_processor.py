@@ -124,12 +124,12 @@ class ImageProcessor(AbstractExecution):
                               frame_count=capture_count,
                               fps_measured=self.fps_measured,
                               failure_cause=None)
+            except StopIteration: pass
             except CancellationError as e:
                 failure_cause = e
             except Exception as e:
                 failure_cause = e
                 self.logger.error(e, exc_info=True)
-            except StopIteration: pass
             finally:
                 # 등록된 모든 frame 처리기를 종료화시킨다.
                 for proc in [*self.clean_frame_readers, *self.frame_updaters, *self.suffix_frame_readers]:

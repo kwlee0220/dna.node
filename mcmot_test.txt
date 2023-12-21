@@ -70,7 +70,7 @@ dna_show_mc_locations %OUTPUT%/etri_hybrid.pickle
 
 
 REM =============================== [Format Kafka Topics and Databases] ===============================
-kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete.json
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/kafka_scripts/delete.json
 jarvey format node_tracks_index
 jarvey format track_features_index
 jarvey format associations
