@@ -131,8 +131,7 @@ dmypy.json
 # dna.node
 .gradle/
 data/
-!data/test5.mp4
-!data/etri_05.yaml
+
 output/
 models/
 *.pt
