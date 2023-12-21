@@ -1,0 +1,40 @@
+id: etri:04
+
+camera:
+  uri: test.mp4
+  sync: False
+  init_ts: 0
+
+tracker:
+  drop_border_detections: true
+  draw: ["tracks", "track_zones", "exit_zones", "trails"]
+  track_zones:
+    - [[980, 1078], [5, 894], [0, 730], [952, 361], [1166, 386]]
+  magnifying_zones:
+    - [600, 300, 1240, 940]
+  exit_zones:
+    - [[943, 363], [959, 353], [1170, 374], [1166, 388]]          # 윗쪽 방향
+
+publishing:
+  refine_tracks:
+    buffer_size: 10
+    buffer_timeout: 1.1
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: conf/localization_etri_testbed.json
+    camera_index: 3
+  zone_pipeline:
+    draw: true
+    zones:
+      A: [[867, 380], [1182, 418]]
+      B: [[506, 516], [1179, 619]]
+
+  plugins:
+    kafka_brokers: [localhost:9092]
+    publish_tracks:
+      topic: 'node-tracks'
+    publish_features:
+      topic: 'track-features'
+      distinct_distance: 0.35
+      min_crop_size: 60x35
+      max_iou: 0.2

@@ -133,7 +133,7 @@ class NodeTrackEventPipeline(MultiStagePipeline, TrackProcessor):
                     from .zone.zone_sequences_display import ZoneSequenceDisplay
                     display = ZoneSequenceDisplay()
                     collector.add_listener(display)
-                    image_processor.add_frame_processor(display)
+                    image_processor.add_frame_updater(display)
                     
         reid_features_conf = config.get(publishing_conf, 'reid_features')
         if reid_features_conf:

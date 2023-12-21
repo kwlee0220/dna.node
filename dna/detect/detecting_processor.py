@@ -1,10 +1,11 @@
 from __future__ import annotations
 from typing import Optional
+import dataclasses
 
 from pathlib import Path
 
 from dna import color
-from dna.camera import Frame, ImageProcessor, FrameProcessor
+from dna.camera import Frame, ImageProcessor, FrameProcessor, ImageCapture
 from . import ObjectDetector, Detection
 
 
@@ -41,18 +42,18 @@ class DetectingProcessor(FrameProcessor):
 
         return DetectingProcessor(detector=detector, output=output, draw_detections=draw_detections)
 
-    def on_started(self, proc: ImageProcessor) -> None:
+    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None:
         if self.output:
             Path(self.output).parent.mkdir(exist_ok=True)
             self.out_fp = open(self.output, "w")
         return self
 
-    def on_stopped(self) -> None:
+    def close(self) -> None:
         if self.out_fp:
             self.out_fp.close()
             self.out_fp = None
 
-    def process_frame(self, frame:Frame) -> Optional[Frame]:
+    def process(self, frame:Frame) -> Optional[Frame]:
         img = frame.image
         frame_idx = frame.index
 
@@ -61,8 +62,9 @@ class DetectingProcessor(FrameProcessor):
                 self.out_fp.write(self._to_string(frame_idx, det) + '\n')
             if self.draw_detections:
                 img = det.draw(img, color=self.box_color, label_color=self.label_color)
+                frame = dataclasses.replace(frame, image=img)
 
-        return Frame(image=img, index=frame_idx, ts=frame.ts)
+        return frame
 
     def set_control(self, key: int) -> int:
         if key == ord('l'):

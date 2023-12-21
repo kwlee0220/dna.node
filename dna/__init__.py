@@ -1,5 +1,4 @@
-from .types import Box, Size2d, Point, Image, ByteString, InvalidStateError, \
-                    NodeId, TrackId, TrackletId, Trajectory
+from .types import Box, Size2d, Point, Image, ByteString, InvalidStateError, NodeId, TrackId, TrackletId, Trajectory
 from .color import BGR
 from .utils import initialize_logger, sub_logger
 

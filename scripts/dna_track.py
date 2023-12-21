@@ -12,10 +12,9 @@ from torch.serialization import SourceChangeWarning
 warnings.filterwarnings("ignore", category=SourceChangeWarning)
 
 import dna
-from dna import config
-from dna.camera import ImageProcessor, create_camera_from_conf
+from dna import config, camera
 from dna.track import TrackingPipeline
-from scripts.utils import filter_camera_conf
+from scripts.utils import to_camera_options
 
 
 def define_args(parser):
@@ -42,24 +41,23 @@ def run(args):
     conf = config.load(args.conf) if args.conf else OmegaConf.create()
     
     # 카메라 설정 정보 추가
-    config.update(conf, 'camera', filter_camera_conf(args))
-    camera = create_camera_from_conf(conf.camera)
+    config.update(conf, 'camera', to_camera_options(args))
+    cam = camera.load_camera(**dict(conf.camera))
 
     # args에 포함된 ImageProcess 설정 정보를 추가한다.
     config.update_values(conf, args, 'show', 'output_video', 'progress')
-    
     options = config.to_dict(config.filter(conf, 'show', 'output_video', 'progress'))
-    img_proc = ImageProcessor(camera.open(), **options)
+    img_proc = camera.create_image_processor(camera=cam, **options)
     
     tracker_conf = config.get_or_insert_empty(conf, 'tracker')
     config.update_values(tracker_conf, args, 'output')
     
     tracking_pipeline = TrackingPipeline.load(tracker_conf)
-    img_proc.add_frame_processor(tracking_pipeline)
+    img_proc.set_frame_processor(tracking_pipeline)
     if tracking_pipeline.info_drawer:
-        img_proc.add_frame_processor(tracking_pipeline.info_drawer)
+        img_proc.add_frame_updater(tracking_pipeline.info_drawer)
 
-    result: ImageProcessor.Result = img_proc.run()
+    result = img_proc.run()
     print(result)
     
 

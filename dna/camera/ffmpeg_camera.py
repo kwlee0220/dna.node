@@ -7,10 +7,9 @@ import numpy as np
 import cv2
 
 from dna import Size2d, Image
-from .utils import SyncImageCapture
-from .types import Frame, Camera
+from .types import Camera
+from .utils import SyncableImageCapture
 from dna.support import iterables
-from dna.utils import utc_now_millis
 
 
 def eval_ratio(ratio_str:str) -> float:
@@ -19,7 +18,7 @@ def eval_ratio(ratio_str:str) -> float:
     
 
 class FFMPEGCamera(Camera):
-    __slots__ = '_uri', 'cap_info', '_size', '_fps', '_pipeline', '_init_ts_expr'
+    __slots__ = '_uri', 'cap_info', '_size', '_fps', '_pipeline', '__init_ts_expr'
     
     def __init__(self, uri:str, **options:object):
         super().__init__()
@@ -31,13 +30,11 @@ class FFMPEGCamera(Camera):
         self._fps = int(eval_ratio(self.cap_info['r_frame_rate']))
         self._pipeline = (
             ffmpeg.input(self._uri, rtsp_transport = 'tcp')
-            # ffmpeg.input(self._uri, rtsp_transport = 'tcp', fflags='nobuffer', flags='low_delay')
                     .output('pipe:', format='rawvideo', pix_fmt='bgr24')
                     .overwrite_output()
         )
         
-        from dna.utils import utc_now_millis
-        self._init_ts_expr = options.get('init_ts', 'open')
+        self.__init_ts_expr = options.get('init_ts', 'open')
 
     def open(self) -> FFMPEGCameraCapture:
         return FFMPEGCameraCapture(self, self.cap_info, self.pipeline, init_ts_expr=self._init_ts_expr)
@@ -53,51 +50,46 @@ class FFMPEGCamera(Camera):
     @property
     def fps(self) -> int:
         return self._fps
+        
+    @property
+    def init_ts_expr(self) -> str:
+        return self.__init_ts_expr
 
     @property
     def pipeline(self):
         return self._pipeline
         
 
-class FFMPEGCameraCapture(SyncImageCapture):
-    __slots__ = ( '_camera', '_process', '_image_size', '_image_bytes' )
+class FFMPEGCameraCapture(SyncableImageCapture):
+    __slots__ = ( '__camera', '__process', '__image_bytes' )
 
-    def __init__(self, camera:FFMPEGCamera, cap_info, pipeline,
-                 *,
-                 init_ts_expr:str='open',
-                 sync:bool=False) -> None:
-        super().__init__(fps=camera.fps, ts_sync_expr=init_ts_expr, sync=sync)
+    def __init__(self, camera:FFMPEGCamera, cap_info, pipeline) -> None:
+        super().__init__(fps=camera.fps, sync=camera.sync, init_ts_expr=camera.init_ts_expr)
         
-        self._camera = camera
-        self._process = pipeline.run_async(pipe_stdout=True)
-        self._image_size = camera.size
-        self._image_bytes = self.size.area() * 3
+        self.__camera = camera
+        self.__process = pipeline.run_async(pipe_stdout=True)
+        self._image_size = camera.image_size
+        self.__image_bytes = camera.image_size.area() * 3
 
     def close(self) -> None:
-        if self._process:
-            self._process.stdout.close()
-            self._process.wait()
-            self._process = None
+        if self.__process:
+            self.__process.stdout.close()
+            self.__process.wait()
+            self.__process = None
 
     def is_open(self) -> bool:
-        return self._process is not None
-            
-    def capture_a_image(self) -> Optional[Image]:
-        image_bytes = self._process.stdout.read(self._image_bytes)
-        if not image_bytes:
-            return None
-        
-        in_frame = (np.frombuffer(image_bytes, np.uint8)
-                        .reshape([self.size.height, self.size.width, 3]))
-        return cv2.resize(in_frame, tuple(self.camera.size))
+        return self.__process is not None
 
     @property
     def camera(self) -> FFMPEGCamera:
-        return self._camera
+        return self.__camera
 
     @property
-    def size(self) -> Size2d:
-        return self._image_size
+    def image_size(self) -> Size2d:
+        return self.__camera.image_size
+            
+    def __iter__(self) -> FFMPEGCameraCapture:
+        return self
 
     @property
     def repr_str(self) -> str:
@@ -106,3 +98,12 @@ class FFMPEGCameraCapture(SyncImageCapture):
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__}({self.repr_str})'
+    
+    def grab_image(self) -> Optional[Image]:
+        image_bytes = self.__process.stdout.read(self.__image_bytes)
+        if not image_bytes:
+            return None
+        
+        in_frame = (np.frombuffer(image_bytes, np.uint8)
+                        .reshape([self.size.height, self.size.width, 3]))
+        return cv2.resize(in_frame, tuple(self.camera.size))

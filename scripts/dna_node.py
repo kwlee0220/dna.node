@@ -11,10 +11,9 @@ from torch.serialization import SourceChangeWarning
 warnings.filterwarnings("ignore", category=SourceChangeWarning)
 
 import dna
-from dna import config, initialize_logger
-from scripts import filter_camera_conf
-from scripts.utils import filter_camera_conf, add_image_processor_arguments, to_image_processor_options
-from dna.camera import ImageProcessor, create_camera_from_conf
+from dna import config, initialize_logger, camera
+from scripts import to_camera_options
+from scripts.utils import to_camera_options, add_image_processor_arguments, to_image_processor_options
 from dna.node.node_processor import build_node_processor
 from scripts import update_namespace_with_environ
 
@@ -39,13 +38,13 @@ def run(args):
     conf = config.load(args.conf) if args.conf else OmegaConf.create()
     
     # 카메라 설정 정보 추가
-    config.update(conf, 'camera', filter_camera_conf(args))
-    camera = create_camera_from_conf(conf.camera)
+    config.update(conf, 'camera', to_camera_options(args))
+    cam = camera.load_camera(**dict(conf.camera))
 
     # args에 포함된 ImageProcess 설정 정보를 추가한다.
     config.update_values(conf, config.to_conf(args))
     options = to_image_processor_options(conf)
-    img_proc = ImageProcessor(camera.open(), **options)
+    img_proc = camera.create_image_processor(camera=cam, **options)
     
     if args.silent_kafka:
         config.remove(conf, 'publishing.publish_kafka')
@@ -59,7 +58,7 @@ def run(args):
     if args.zseq_log and config.exists(conf, 'publishing.zone_pipeline'):
         config.update(conf, 'publishing.zone_pipeline.zone_seq_log', args.zseq_log)
     build_node_processor(img_proc, conf)
-    result: ImageProcessor.Result = img_proc.run()
+    result = img_proc.run()
     print(result)
     
 

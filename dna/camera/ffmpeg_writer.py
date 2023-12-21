@@ -3,29 +3,29 @@ from typing import Optional
 
 from pathlib import Path
 from contextlib import suppress
-import ffmpeg
 import logging
+import ffmpeg
 
 from dna import Image, Size2d
-from .types import Frame, VideoWriter
-from .image_processor import FrameProcessor, ImageProcessor
+from dna.camera import Frame, VideoWriter, ImageCapture
+from .image_processor import FrameReader, ImageProcessor
 
 
 CRF_VISUALLY_LOSSLESS = 17
 CRF_FFMPEG_DEFAULT = 23
 
 class FFMPEGWriter(VideoWriter):
-    __slots__ = ( '_path', '_fps', '_image_size', 'process' )
+    __slots__ = ( '__path', '__fps', '__image_size', 'process' )
     
     def __init__(self, video_file:str, fps:int, size:Size2d,
                  *,
                  crf:int=CRF_FFMPEG_DEFAULT) -> None:
         super().__init__()
         
-        self._path = Path(video_file).resolve()
-        self._path.parent.mkdir(exist_ok=True)
-        self._fps = fps
-        self._image_size = size
+        self.__path = Path(video_file).resolve()
+        self.__path.parent.mkdir(exist_ok=True)
+        self.__fps = fps
+        self.__image_size = size
         self.process = (
             ffmpeg.input('pipe:', format='rawvideo', pix_fmt='bgr24', s=f'{size.width}x{size.height}', r=fps)
                     # .output(video_file, f='mp4', vcodec='mpeg4')
@@ -49,45 +49,44 @@ class FFMPEGWriter(VideoWriter):
         
     @property
     def path(self) -> Path:
-        return self._path
+        return self.__path
         
     @property
     def fps(self) -> int:
-        return self._fps
+        return self.__fps
         
     @property
     def image_size(self) -> Size2d:
-        return self._image_size
+        return self.__image_size
 
     def write(self, image:Image) -> None:
         assert self.is_open(), "not opened."
         self.process.stdin.write(image.tobytes())
 
 
-class FFMPEGWriteProcessor(FrameProcessor):
-    __slots__ = ( 'path', '_options', 'logger', '_writer' )
+class FFMPEGWriteProcessor(FrameReader):
+    __slots__ = ( 'path', '__options', 'logger', '__writer' )
     
     def __init__(self, path:Path, **options) -> None:
         self.path = path.resolve()
         self.logger = options.get('logger')
-        self._options = options
-        self._options.pop('logger', None)
-        self._writer = None
+        self.__options = options
+        self.__options.pop('logger', None)
+        self.__writer = None
         
-    def on_started(self, img_proc:ImageProcessor) -> None:
+    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None:
         if self.logger and self.logger.isEnabledFor(logging.INFO):
             self.logger.info(f'opening video file: {self.path}')
-        self._writer = FFMPEGWriter(self.path.resolve(), img_proc.capture.fps, img_proc.capture.size, **self._options)
+        self.__writer = FFMPEGWriter(self.path.resolve(), img_proc.capture.fps, img_proc.capture.size, **self.__options)
 
-    def on_stopped(self) -> None:
+    def close(self) -> None:
         if self.logger and self.logger.isEnabledFor(logging.INFO):
             self.logger.info(f'closing video file: {self.path}')
         with suppress(Exception):
-            self._writer.close()
-            self._writer = None
+            self.__writer.close()
+            self.__writer = None
 
-    def process_frame(self, frame:Frame) -> Optional[Frame]:
-        if self._writer is None:
+    def read(self, frame:Frame) -> None:
+        if self.__writer is None:
             raise ValueError(f'OpenCvWriteProcessor has not been started')
-        self._writer.write(frame.image)
-        return frame
+        self.__writer.write(frame.image)

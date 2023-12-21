@@ -5,12 +5,12 @@ from omegaconf import OmegaConf
 import numpy as np
 
 from dna import color, BGR, Image
-from dna.camera import Frame, FrameProcessor
+from dna.camera import Frame, ImageCapture, ImageProcessor, FrameProcessor, FrameUpdater
 from .types import ObjectTrack, ObjectTracker, TrackProcessor
 from .track_processors import TrailCollector, TrackCsvWriter
 
 
-class TrackInfoDrawer(FrameProcessor):
+class TrackInfoDrawer(FrameUpdater):
     __slots__ = ( 'tracker', 'trail_collector', 'draw' )
     
     def __init__(self, tracker:ObjectTracker, trail_collector:TrailCollector, draw:list[str]=[]) -> None:
@@ -18,8 +18,8 @@ class TrackInfoDrawer(FrameProcessor):
         self.trail_collector = trail_collector
         self.draw = draw
     
-    def on_started(self, capture) -> None: pass
-    def on_stopped(self) -> None: pass
+    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None: pass
+    def close(self) -> None: pass
 
     def set_control(self, key:int) -> int:
         def toggle(tag:str):
@@ -42,7 +42,7 @@ class TrackInfoDrawer(FrameProcessor):
             toggle('magnifying_zones')
         return key
     
-    def process_frame(self, frame:Frame) -> Frame:
+    def update(self, frame:Frame) -> Optional[Frame]:
         convas = frame.image
         
         if 'track_zones' in self.draw:
@@ -126,19 +126,19 @@ class TrackingPipeline(FrameProcessor):
             tracking_pipeline.add_track_processor(TrackCsvWriter(output))
             
         return tracking_pipeline
+
+    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None:
+        for processor in self._track_processors:
+            processor.track_started(self.tracker)
+
+    def close(self) -> None:
+        for processor in self._track_processors:
+            processor.track_stopped(self.tracker)
         
     def add_track_processor(self, proc:TrackProcessor) -> None:
         self._track_processors.append(proc)
 
-    def on_started(self, capture) -> None:
-        for processor in self._track_processors:
-            processor.track_started(self.tracker)
-
-    def on_stopped(self) -> None:
-        for processor in self._track_processors:
-            processor.track_stopped(self.tracker)
-
-    def process_frame(self, frame:Frame) -> Frame:
+    def process(self, frame:Frame) -> Optional[Frame]:
         tracks = self.tracker.track(frame)
 
         for processor in self._track_processors:

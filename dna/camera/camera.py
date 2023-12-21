@@ -4,7 +4,8 @@ from typing import Any, Optional
 
 from omegaconf import OmegaConf
 
-from .types import Camera
+from .types import Frame, Camera
+from .opencv_camera import OpenCvCamera, VideoFile
 
 
 def is_local_camera(uri:str):
@@ -35,10 +36,10 @@ def create_camera_from_conf(conf:OmegaConf|dict[str,Any]) -> Camera:
     if isinstance(conf, OmegaConf):
         conf = dict(conf)
     options = {k:v for k, v in conf.items() if k != 'uri'}
-    return create_camera(conf.uri, **options)
+    return load_camera(conf.uri, **options)
     
 
-def create_camera(uri:str, **options) -> Camera:
+def load_camera(uri:str, **options) -> Camera:
     """Create an OpenCvCamera object of the given URI.
     The additional options will be given by dictionary ``options``.
     The options contain the followings:
@@ -59,17 +60,31 @@ def create_camera(uri:str, **options) -> Camera:
         If URI points to a video file, ``OpenCvVideFile`` object is returned. Otherwise,
         ``OpenCvCamera`` is returned.
     """
-    from .opencv_camera import OpenCvCamera, OpenCvVideFile, RTSPOpenCvCamera
+    from .opencv_camera import OpenCvCamera, VideoFile
     
     if is_video_file(uri):
-        return OpenCvVideFile(uri, **options)
+        return VideoFile(uri, **options)
     elif is_local_camera(uri):
-        return OpenCvCamera(uri, **options)
+        return OpenCvCamera(int(uri), **options)
     elif is_rtsp_camera(uri):
         if uri.find("&end=") >= 0 or uri.find("start=") >= 0:
             from .ffmpeg_camera import FFMPEGCamera
             return FFMPEGCamera(uri, **options)
         else:
-            return RTSPOpenCvCamera(uri, **options)
+            return OpenCvCamera(uri, **options)
     else:
         raise ValueError(f'invalid Camera URI: {uri}')
+    
+
+# import reactivex as rx    
+# from reactivex import Observer, Observable
+# def observe(camera:Camera) -> Observable[Frame]:
+#     def supply_frames(observer:Observer[Frame], scheduler):
+#         with camera.open() as cap:
+#             try:
+#                 for frame in cap:
+#                     observer.on_next(frame)
+#                 observer.on_completed()
+#             except Exception as error:
+#                 observer.on_error(error)
+#     return rx.create(supply_frames)

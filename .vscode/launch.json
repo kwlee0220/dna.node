@@ -47,7 +47,8 @@
             "program": "${workspaceFolder}/scripts/dna_track.py",
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
-                "--conf", "conf/etri_testbed/etri_03.yaml",
+                "--camera", "output/test.mp4",
+                "--conf", "conf/etri_testbed/etri_04.yaml",
                 "--show", //"1280x720",
                 // "--progress",  // -p
             ],
@@ -58,6 +59,7 @@
             "program": "${workspaceFolder}/scripts/dna_detect.py", 
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
+                "--camera", "output/test.mp4",
                 "--conf", "conf/etri_testbed/etri_03.yaml",
                 // "--detector", "dna.detect.yolov4:score=0.3&classes=car,bus,truck",
                 // "--detector", "dna.detect.rcnn50_fpn",
@@ -98,6 +100,36 @@
 
 
         { "name": "------- [ MCMOT ] ----------", "type": "python", "request": "launch" },
+        { "name": "Replay NodeEvents",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_replay_node_events.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "D:/Dropbox/Temp/TEST/etri_hybrid.pickle",
+                // "--sync",
+                "--max_wait_ms", "1000",
+                "--progress",
+                // "--start_now",
+            ],
+            "justMyCode": true
+        },
+        { "name": "MergeSort NodeEvents",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_merge_sort_events.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "D:/Dropbox/Temp/TEST/etri_01_event.pickle",
+                "D:/Dropbox/Temp/TEST/etri_02_event.pickle",
+                "D:/Dropbox/Temp/TEST/etri_03_event.pickle",
+                "D:/Dropbox/Temp/TEST/etri_04_event.pickle",
+                "D:/Dropbox/Temp/TEST/etri_05_event.pickle",
+                "D:/Dropbox/Temp/TEST/etri_06_event.pickle",
+                "D:/Dropbox/Temp/TEST/etri_07_event.pickle",
+                "--output", "D:/Dropbox/Temp/TEST/etri_motion.pickle",
+                "--node_offsets", "etri:01:10,etri:02:7,etri:03:16,etri:04:10,etri:05:12,etri:06:15,etri:07:0",
+            ],
+            "justMyCode": true
+        },
         { "name": "Show GlobalTracks",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_show_global_tracks.py",
@@ -125,6 +157,47 @@
             ],
             "justMyCode": true
         },
+        { "name": "Show MCLocations",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_show_mc_locations.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "D:/Dropbox/Temp/TEST/etri_01_event.pickle",
+                "D:/Dropbox/Temp/TEST/etri_02_event.pickle",
+                "--offsets", "12,9,18,15,11,17,0",
+                // "--start_frame", "2700",
+            ],
+            "justMyCode": true
+        },
+
+
+        { "name": "------- [ Tools ] ----------", "type": "python", "request": "launch" },
+        { "name": "PrintEvents",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_print_events.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "--files", "D:/Dropbox/Temp/TEST/etri_motion.pickle",
+                "--topic", "global-tracks",
+                "--kafka_offset", "earliest",
+                "--stop_on_timeout",
+                // "--type", "global-track",
+                "--filter", "ev.node_id=='etri:01' or ev.node_id=='etri:07'",
+            ],
+            "justMyCode": true
+        },
+        { "name": "NodeClient",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_node_client.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "--node", "etri:03",
+                // "--camera", "rtsp://admin:Urc2004^^@129.254.171.135:554/profile2/media.smp",
+                "--camera", "output/extended/etri_03.mp4",
+            ],
+            "justMyCode": true
+        },
+
 
 
         { "name": "------- [ Up/Down ] ----------", "type": "python", "request": "launch" },
@@ -140,81 +213,6 @@
             ],
             "justMyCode": true
         },
-        { "name": "MergeSort NodeEvents",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_merge_sort_events.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "D:/Dropbox/Temp/TEST/etri_01_event.pickle",
-                "D:/Dropbox/Temp/TEST/etri_02_event.pickle",
-                "D:/Dropbox/Temp/TEST/etri_03_event.pickle",
-                "D:/Dropbox/Temp/TEST/etri_04_event.pickle",
-                "D:/Dropbox/Temp/TEST/etri_05_event.pickle",
-                "D:/Dropbox/Temp/TEST/etri_06_event.pickle",
-                "D:/Dropbox/Temp/TEST/etri_07_event.pickle",
-                "--output", "D:/Dropbox/Temp/TEST/etri_motion.pickle",
-                "--node_offsets", "etri:01:10,etri:02:7,etri:03:16,etri:04:10,etri:05:12,etri:06:15,etri:07:0",
-            ],
-            "justMyCode": true
-        },
-        { "name": "Replay NodeEvents",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_replay_node_events.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "output/etri_motion_1.pickle",
-                // "--sync",
-                "--max_wait_ms", "2000",
-                "--progress",
-                // "--start_now",
-            ],
-            "justMyCode": true
-        },
-        { "name": "Export Topic",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_export_topic.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "--kafka_offset", "earliest",
-                "--topic", "global-tracks",
-                "--output", "output/global-tracks.json",
-                // "--topic", "global-tracks-running",
-                // "--output", "output/global-tracks-running.json",
-                "--timeout_ms", "1000",
-                "--initial_timeout_ms", "5000",
-                "--stop_on_timeout",
-                // "--sleep_millis", "10",
-            ],
-            "justMyCode": true
-        },
-        { "name": "Import Topic",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_import_topic.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "D:/Dropbox/Temp/20231110T1300-20231110T1330/global_tracks_motion.json",
-                "--type", "global-track",
-                "--topic", "global-tracks",
-                "--progress",
-            ],
-            "justMyCode": true
-        },
-        { "name": "PrintEvents",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_print_events.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "--files", "D:/Dropbox/Temp/TEST/etri_motion.pickle",
-                "--topic", "global-tracks",
-                "--kafka_offset", "earliest",
-                "--stop_on_timeout",
-                // "--type", "global-track",
-                "--filter", "ev.node_id=='etri:01' or ev.node_id=='etri:07'",
-            ],
-            "justMyCode": true
-        },
-
-
         { "name": "------- [ DEBUG ] ----------", "type": "python", "request": "launch" },
         { "name": "Draw Trajs",
             "type": "python", "request": "launch", "console": "integratedTerminal",
@@ -254,19 +252,6 @@
             ],
             "justMyCode": true
         },
-        
-        { "name": "ShowMCLocations",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_show_mc_locations.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "D:/Dropbox/Temp/20231110T1300-20231110T1330/etri_01_event.pickle",
-                "D:/Dropbox/Temp/20231110T1300-20231110T1330/etri_02_event.pickle",
-                "--offsets", "8,3,11,4,8,0,8",
-                // "--start_frame", "2700",
-            ],
-            "justMyCode": true
-        },
         { "name": "-------------------------", "type": "python", "request": "launch" },
 
 
@@ -290,52 +275,8 @@
 
 
 
-        { "name": "ReplayNodeEvents",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_replay_node_events.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                // "output/2022/etri_test_event.json",
-                // "output/sorted_2.pickle"
-                // "output/sorted_1.pickle", "--begin_frames", "0", "0", "0",
-                "output/sorted_2.pickle", "--begin_frames", "41", "5843", "584300",
-                // "output/sorted_3.pickle", "--begin_frames", "89", "9893", "989300",
-                // "output/sorted_4.pickle", "--begin_frames", "145", "15880", "1588000",
-                // "output/sorted_5.pickle", "--begin_frames", "191", "21862", "2186200",
-                // "output/sorted_A.pickle",
-                // "--sync",
-            ],
-            "justMyCode": true
-        },
 
 
-
-
-
-
-
-        
-        { "name": "StoreTopics",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_store_topics.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "--kafka_offset", "earliest",
-                "--db_url", "postgresql://dna:urc2004@localhost:6432/dna",
-                "-f",
-            ],
-            "justMyCode": true
-        },
-        // { "name": "Show global tracks",
-        //     "type": "python", "request": "launch", "console": "integratedTerminal",
-        //     "program": "${workspaceFolder}/scripts/dna_show_global_tracks.py",
-        //     "env": { "PYTHONPATH": "${workspaceFolder}" },
-        //     "args": [
-        //         "--kafka_brokers", "localhost:9092",
-        //         "--kafka_offset", "earliest",
-        //     ],
-        //     "justMyCode": true
-        // },
         { "name": "Show multiple tracks",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_show_multi_tracks.py",
@@ -346,35 +287,6 @@
             ],
             "justMyCode": true
         },
-
-
-        
-
-
-        { "name": "BackupTopics",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_backup_topics.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "--topic", "node-tracks", "track-motions", "track-features",
-            ],
-            "justMyCode": true
-        },
-        { "name": "RestoreTopics",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_restore_topics.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "output/backup/node-tracks.pickle",
-                "output/backup/track-motions.pickle",
-                "output/backup/track-features.pickle",
-            ],
-            "justMyCode": true
-        },
-
-
-
-
         { "name": "SyncVideos",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_sync_videos.py",
@@ -387,107 +299,6 @@
                 "--max_camera_distance", "55",
                 "--segment_length", "5",
                 "--sparse_distance", "10",
-            ],
-            "justMyCode": true
-        },
-
-
-
-        { "name": "AssocTrackletsMotion",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets_motion.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "etri:04-etri:06", "etri:04-etri:05", "etri:05-etri:06", "etri:05-etri:07",
-                "--max_distance_to_camera", "65",
-                "--max_track_distance", "5",
-            ],
-            "justMyCode": true
-        },
-        { "name": "AssocTrackletsFeature",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets_feature.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "--kafka_brokers", "localhost:9092",
-                "--kafka_offset", "earliest",
-                "--db_url", "postgresql://dna:urc2004@localhost:6432/dna",
-                // "--listen", "etri:07",
-                "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
-            ],
-            "justMyCode": true
-        },
-        { "name": "AssocTrackletsFuse",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_assoc_tracklets_fuse.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "--kafka_brokers", "localhost:9092",
-                "--kafka_offset", "earliest",
-                "--db_url", "postgresql://dna:urc2004@localhost:6432/dna",
-                
-                "etri:04-etri:06", "etri:04-etri:05", "etri:05-etri:06", "etri:05-etri:07",
-                "--listen", "etri:04", "etri:05", "etri:06", "etri:07",
-                // "--listen", "etri:07",
-                "--max_distance_to_camera", "65",
-                "--max_track_distance", "5",
-            ],
-            "justMyCode": true
-        },
-
-
-        { "name": "GenerateTrainSet",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_gen_trainset.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "data/2022/etri_061.mp4",
-                "output/2022/etri_061_event.json",
-                "--conf", "conf/etri_testbed/etri_06.yaml",
-                "--margin", "5",
-                "--motions", "output/2022/motions_061.csv",
-                "--matches", "output/2022/tracklet_matches_1.csv",
-                "--start_gidx", "0",
-                "--output", "d:/Temp/training"
-            ],
-            "justMyCode": true
-        },
-        { "name": "GenerateTrainSet2",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_gen_trainset2.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "data/2022/etri_074.mp4",
-                "output/2022/etri_074_event.json",
-                "--conf", "conf/etri_testbed/etri_07.yaml",
-                "--margin", "5",
-                "--matches", "output/2022/tracklet_matches_4.csv",
-                "--start_gidx", "110",
-                "--min_size", "90x90",
-                "--output", "d:/Temp/training"
-            ],
-            "justMyCode": true
-        },
-        { "name": "ReduceTrainSet",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_reduce_trainset.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "d:/Temp/training2",
-                "d:/Temp/reduced",
-                "--min_k", "16",
-                "--max_k", "28",
-            ],
-            "justMyCode": true
-        },
-        { "name": "NodeClient",
-            "type": "python", "request": "launch", "console": "integratedTerminal",
-            "program": "${workspaceFolder}/scripts/dna_node_client.py",
-            "env": { "PYTHONPATH": "${workspaceFolder}" },
-            "args": [
-                "--node", "etri:03",
-                // "--camera", "rtsp://admin:Urc2004^^@129.254.171.135:554/profile2/media.smp",
-                "--camera", "output/extended/etri_03.mp4",
             ],
             "justMyCode": true
         },

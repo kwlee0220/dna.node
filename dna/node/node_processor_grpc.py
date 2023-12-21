@@ -12,8 +12,8 @@ import grpc
 from .proto import node_processor_pb2
 from .proto import node_processor_pb2_grpc
 
-from dna import config, utils
-from dna.camera import Frame, ImageProcessor, FrameProcessor, create_camera_from_conf
+from dna import config, utils, camera
+from dna.camera import FrameProcessor
 from dna.node.node_processor import build_node_processor
 
 
@@ -83,16 +83,14 @@ class NodeProcessorServicer(node_processor_pb2_grpc.NodeProcessorServicer):
         if request.HasField('camera_uri'):
             camera_conf.uri = request.camera_uri
         
-        camera = create_camera_from_conf(camera_conf)
-        img_proc = ImageProcessor(camera.open(), show=True)
-        # build_node_processor(conf, image_processor=img_proc)
+        cam = camera.load_camera(**dict(camera_conf))
         
         proc_id = str(uuid.uuid4())
         status_reporter = StatusReporter(proc_id=proc_id)
-        img_proc.add_frame_processor(status_reporter)
         last_status = status_reporter.status
         
-        thread = threading.Thread(target=img_proc.run)
+        kwargs = {'frame_processor':status_reporter, 'show':True}
+        thread = threading.Thread(target=camera.process_images, kwargs=kwargs)
         thread.start()
         
         while True:

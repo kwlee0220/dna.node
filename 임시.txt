@@ -1,0 +1,110 @@
+
+
+REM =============================== [Global settings] ========================
+set LIVE=rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel
+set PLAYBACK=rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel
+set CONF=conf/etri_testbed
+
+set DATE=20231107
+set START=1300
+set END=1330
+set START_TS=%DATE%T%START%00
+set END_TS=%DATE%T%END%00
+set OUTPUT=D:/Dropbox/Temp/%DATE%T%START%-%DATE%T%END%
+set VIDEO=%OUTPUT%/videos
+
+set OFFSETS="7,5,12,7,2,0,0"
+set NODE_OFFSETS="etri:01:7,etri:02:5,etri:03:12,etri:04:7,etri:05:2,etri:06:0,etri:07:0"
+
+
+REM =============================== [Create dataset directories] ========================
+if not exist "%OUTPUT%" mkdir "%OUTPUT%"
+if not exist "%VIDEO%" mkdir "%VIDEO%"
+
+
+
+REM =============================== [Show Multiple Locations] ===============================
+dna_show_mc_locations %OUTPUT%/etri_01_event.json %OUTPUT%/etri_02_event.json %OUTPUT%/etri_03_event.json ^
+%OUTPUT%/etri_04_event.json %OUTPUT%/etri_05_event.json %OUTPUT%/etri_06_event.json %OUTPUT%/etri_07_event.json ^
+--offsets "%OFFSETS%"
+
+dna_show_mc_locations %OUTPUT%/etri_01_event.pickle %OUTPUT%/etri_07_event.pickle --offsets "12,7,15,8,12,0,12"
+dna_show_mc_locations %OUTPUT%/etri_motion.pickle
+python scripts/dna_print.py %OUTPUT%/etri_hybrid.pickle
+
+
+
+REM =============================== [Analyze node events (for feature-based MCMOT)] ===============================
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete.json
+REM -----------------------------
+dna_node %CONF%/etri_01r.yaml --camera %VIDEO%/etri_01.mp4 --output %OUTPUT%/etri_01r_event.pickle --output_video %VIDEO%/etri_01r_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_02.yaml --camera %VIDEO%/etri_02.mp4 --output %OUTPUT%/etri_02_event.pickle --output_video %VIDEO%/etri_02_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_04.yaml --camera %VIDEO%/etri_04.mp4 --output %OUTPUT%/etri_04_event.pickle --output_video %VIDEO%/etri_04_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_06r.yaml --camera %VIDEO%/etri_06.mp4 --output %OUTPUT%/etri_06r_event.pickle --output_video %VIDEO%/etri_06r_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_07r.yaml --camera %VIDEO%/etri_07.mp4 --output %OUTPUT%/etri_07r_event.pickle --output_video %VIDEO%/etri_07r_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+
+dna_node %CONF%/etri_01.yaml --camera %VIDEO%/etri_01.mp4 --output %OUTPUT%/etri_01_event.pickle --output_video %VIDEO%/etri_01_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_03.yaml --camera %VIDEO%/etri_03.mp4 --output %OUTPUT%/etri_03_event.pickle --output_video %VIDEO%/etri_03_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_05.yaml --camera %VIDEO%/etri_05.mp4 --output %OUTPUT%/etri_05_event.pickle --output_video %VIDEO%/etri_05_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_06.yaml --camera %VIDEO%/etri_06.mp4 --output %OUTPUT%/etri_06_event.pickle --output_video %VIDEO%/etri_06_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_07.yaml --camera %VIDEO%/etri_07.mp4 --output %OUTPUT%/etri_07_event.pickle --output_video %VIDEO%/etri_07_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+
+REM -----------------------------
+dna_download --topic node-tracks track-features --output %OUTPUT%/etri_feature_initial.pickle --stop_on_timeout
+dna_download --topic node-tracks track-features --node_offsets "%NODE_OFFSETS%" --output %OUTPUT%/etri_feature.pickle --stop_on_timeout
+
+
+
+REM =============================== [Synchronize initial dataset] ===============================
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete-node-tracks.json
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete-track-features.json
+--------------------------
+dna_replay %OUTPUT%/etri_motion_initial.pickle --progress --max_wait_ms 500
+dna_download --topic node-tracks track-features --node_offsets "%NODE_OFFSETS%" --output %OUTPUT%/etri_motion.pickle --stop_on_timeout
+--------------------------
+dna_replay %OUTPUT%/etri_feature_initial.pickle --progress --max_wait_ms 500
+dna_download --topic node-tracks track-features --node_offsets "%NODE_OFFSETS%" --output %OUTPUT%/etri_feature.pickle --stop_on_timeout
+
+
+
+
+
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete-node-tracks.json
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete-track-features.json
+format_node_track_index
+format_track_feature_index
+format_associations
+
+start build_node_tracks_index
+start build_track_features_index
+ping 127.0.0.1 -n 3 > NUL
+
+
+start dna_node %CONF%/etri_01r.yaml --camera %VIDEO%/etri_01.mp4 --init_ts runtime --sync
+start dna_node %CONF%/etri_02.yaml --camera %VIDEO%/etri_02.mp4 --init_ts runtime --sync
+start dna_node %CONF%/etri_06r.yaml --camera %VIDEO%/etri_06.mp4 --init_ts runtime --sync 
+start dna_node %CONF%/etri_07r.yaml --camera %VIDEO%/etri_07.mp4 --init_ts runtime --sync
+
+start dna_node %CONF%/etri_04.yaml --camera %VIDEO%/etri_04.mp4 --init_ts runtime --sync
+
+associate_tracklets --config %JARVEY_STREAMS_HOME%/mcmot_configs_f5.yaml --log4j2 D:\Dropbox\development\jarvey\jarvey.streams\log4j2.xml --cleanup
+
+
+
+start dna_node %CONF%/etri_03r.yaml --camera %VIDEO%/etri_03.mp4 --init_ts runtime
+
+
+
+dna_node %CONF%/etri_05.yaml --camera %VIDEO%/etri_05.mp4 --init_ts runtime
+
+
+
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete-node-tracks.json
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete-track-features.json
+
+
+start dna_node %CONF%/etri_02.yaml --camera %VIDEO%/etri_02.mp4 --init_ts runtime --sync
+start dna_node %CONF%/etri_04.yaml --camera %VIDEO%/etri_04.mp4 --init_ts runtime --sync
+start dna_node %CONF%/etri_06r.yaml --camera %VIDEO%/etri_06.mp4 --init_ts runtime --sync
+
+dna_import_topic D:/Dropbox/Temp/20231110T0900-20231110T0930/global_tracks_motion.json --type global-track --topic global-tracks --progress

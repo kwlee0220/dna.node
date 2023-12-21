@@ -1,0 +1,69 @@
+
+REM =============================== [Global settings] ========================
+set LIVE=rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel
+set PLAYBACK=rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel
+set CONF=conf/etri_testbed
+
+set DATE=20231107
+set START=1300
+set END=1330
+set START_TS=%DATE%T%START%00
+set END_TS=%DATE%T%END%00
+set OUTPUT=D:/Dropbox/Temp/%DATE%T%START%-%DATE%T%END%
+set VIDEO=%OUTPUT%/videos
+
+set OFFSETS="5,8,8,5,8,0,4"
+set NODE_OFFSETS="etri:01:5,etri:02:8,etri:03:8,etri:04:5,etri:05:8,etri:06:0,etri:07:4"
+
+
+
+REM =============================== [Analyze node events (for hybrid MCMOT)] ===============================
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete.json
+REM -----------------------------
+dna_node %CONF%/etri_01.yaml --camera %VIDEO%/etri_01.mp4 --output %OUTPUT%/etri_01_event.pickle --output_video %VIDEO%/etri_01_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_02.yaml --camera %VIDEO%/etri_02.mp4 --output %OUTPUT%/etri_02_event.pickle --output_video %VIDEO%/etri_02_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_04.yaml --camera %VIDEO%/etri_04.mp4 --output %OUTPUT%/etri_04_event.pickle --output_video %VIDEO%/etri_04_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_06r.yaml --camera %VIDEO%/etri_06.mp4 --output %OUTPUT%/etri_06r_event.pickle --output_video %VIDEO%/etri_06r_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_07.yaml --camera %VIDEO%/etri_07.mp4 --output %OUTPUT%/etri_07_event.pickle --output_video %VIDEO%/etri_07_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+
+
+
+REM -----------------------------
+dna_merge_sort_events %OUTPUT%/etri_01_event.pickle %OUTPUT%/etri_02_event.pickle %OUTPUT%/etri_03_event.pickle ^
+%OUTPUT%/etri_04_event.pickle %OUTPUT%/etri_05_event.pickle %OUTPUT%/etri_06r_event.pickle ^
+%OUTPUT%/etri_07_event.pickle --node_offsets "%NODE_OFFSETS%" --output %OUTPUT%/etri_hybrid.pickle
+
+dna_show_mc_locations %OUTPUT%/etri_hybrid.pickle
+dna_show_mc_locations %OUTPUT%/etri_02_event.pickle %OUTPUT%/etri_03_event.pickle --offsets 11,2,5,0,3,7,9
+
+
+
+
+REM =============================== [Associate running global tracks (Hybrid based)] ===============================
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete.json
+jarvey_streams format node_tracks_index
+jarvey_streams format track_features_index
+jarvey_streams format associations
+REM -----------------------------
+start jarvey_streams build node_tracks_index
+start jarvey_streams build track_features_index
+start jarvey_streams build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_h.yaml
+start jarvey_streams build global_tracks --config %JARVEY_STREAMS_HOME%/mcmot_configs_h.yaml
+
+ping 127.0.0.1 -n 10 > NUL
+dna_replay %OUTPUT%/etri_hybrid.pickle --progress --max_wait_ms 1000 --sync
+
+
+
+
+
+dna_replay %OUTPUT%/etri_hybrid.pickle --progress --max_wait_ms 1000
+
+jarvey_streams build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_h.yaml --skip_feature --kafka_offset earliest
+jarvey_streams build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_h.yaml --skip_motion --kafka_offset earliest
+jarvey_streams build global_tracks --config %JARVEY_STREAMS_HOME%/mcmot_configs_h.yaml --kafka_offset earliest --cleanup
+
+dna_show_gtracks --show_supports --output_video %OUTPUT%/global_tracks_feature.mp4
+
+start jarvey_streams build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_h.yaml --skip_feature --kafka_offset earliest
+jarvey_streams build global_tracks --config %JARVEY_STREAMS_HOME%/mcmot_configs_h.yaml --kafka_offset earliest --stop_on_timeout

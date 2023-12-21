@@ -17,7 +17,6 @@ import argparse
 
 from dna import Box, Image, color, Point, TrackletId, initialize_logger, config, Size2d
 from dna.utils import utc2datetime, datetime2str
-from dna.camera import Camera, Frame
 from dna.camera.opencv_video_writer import OpenCvVideoWriter
 from dna.event import NodeTrack
 from dna.event.utils import sort_events_with_fixed_buffer

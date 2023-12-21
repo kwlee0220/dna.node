@@ -1,0 +1,34 @@
+---
+version: '3.1'
+name: dna-node
+
+services:
+
+###########################################################################
+################################ DNA_NODE #################################
+###########################################################################
+  dna-node:
+    container_name: 'dna-node'
+    image: kwlee0220/dna-node
+    volumes:
+      - ./dna.node:/dna.node
+      - ./torch_hub:/root/.cache/torch/hub
+    environment:
+      DNA_NODE_FFMPEG_PATH: "/opt/conda/bin/ffmpeg"
+      DISPLAY: "${DISPLAY}"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: dna node conf/etri_04.yaml --kafka_brokers localhost:9092
+    networks:
+      - default
+      - dna_server_net
+
+networks:
+  dna_server_net:
+    external: true
+    internal: true

@@ -1,0 +1,193 @@
+
+REM =============================== [Global settings] ========================
+set LIVE=rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel
+set PLAYBACK=rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel
+set CONF=conf/etri_testbed
+
+set DATE=20231110
+set START=0903
+set END=0905
+set START_TS=%DATE%T%START%00
+set END_TS=%DATE%T%END%00
+set OUTPUT=D:/Dropbox/Temp/TEST
+set VIDEO=%OUTPUT%/videos
+
+set OFFSETS="12,9,18,15,11,17,0"
+set NODE_OFFSETS="etri:01:12,etri:02:9,etri:03:18,etri:04:15,etri:05:11,etri:06:17,etri:07:0"
+
+
+REM ------------------ [Download videos] --------------------
+ffmpeg -nostdin -hide_banner -rtsp_transport tcp -i "%PLAYBACK%/0/media.smp/start=%START_TS%&end=%END_TS%" -map 0:v:1 -f mp4 -r 10 -y %VIDEO%/etri_01.mp4
+ffmpeg -nostdin -hide_banner -rtsp_transport tcp -i "%PLAYBACK%/1/media.smp/start=%START_TS%&end=%END_TS%" -map 0:v:1 -f mp4 -r 10 -y %VIDEO%/etri_02.mp4
+
+ffmpeg -nostdin -hide_banner -rtsp_transport tcp -i "%PLAYBACK%/2/media.smp/start=%START_TS%&end=%END_TS%" -map 0:v:1 -f mp4 -r 10 -y %VIDEO%/etri_03.mp4
+ffmpeg -nostdin -hide_banner -rtsp_transport tcp -i "%PLAYBACK%/4/media.smp/start=%START_TS%&end=%END_TS%" -map 0:v:1 -f mp4 -r 10 -y %VIDEO%/etri_05.mp4
+ffmpeg -nostdin -hide_banner -rtsp_transport tcp -i "%PLAYBACK%/5/media.smp/start=%START_TS%&end=%END_TS%" -map 0:v:1 -f mp4 -r 10 -y %VIDEO%/etri_06.mp4
+
+ffmpeg -nostdin -hide_banner -rtsp_transport tcp -i "%PLAYBACK%/6/media.smp/start=%START_TS%&end=%END_TS%" -map 0:v:1 -f mp4 -r 10 -y %VIDEO%/etri_07.mp4
+ffmpeg -nostdin -hide_banner -rtsp_transport tcp -i "%PLAYBACK%/3/media.smp/start=%START_TS%&end=%END_TS%" -map 0:v:1 -f mp4 -r 10 -y %VIDEO%/etri_04.mp4
+
+
+REM =============================== [Analyze node events] ===============================
+dna_node %CONF%/etri_01r.yaml --camera %VIDEO%/etri_01.mp4 --output %OUTPUT%/etri_01r_event.pickle --output_video %VIDEO%/etri_01r_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_02.yaml --camera %VIDEO%/etri_02.mp4 --output %OUTPUT%/etri_02_event.pickle --output_video %VIDEO%/etri_02_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+
+dna_node %CONF%/etri_06r.yaml --camera %VIDEO%/etri_06.mp4 --output %OUTPUT%/etri_06r_event.pickle --output_video %VIDEO%/etri_06r_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_04.yaml --camera %VIDEO%/etri_04.mp4 --output %OUTPUT%/etri_04_event.pickle --output_video %VIDEO%/etri_04_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+
+dna_node %CONF%/etri_07r.yaml --camera %VIDEO%/etri_07.mp4 --output %OUTPUT%/etri_07r_event.pickle --output_video %VIDEO%/etri_07r_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_01.yaml --camera %VIDEO%/etri_01.mp4 --output %OUTPUT%/etri_01_event.pickle --output_video %VIDEO%/etri_01_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+
+dna_node %CONF%/etri_05.yaml --camera %VIDEO%/etri_05.mp4 --output %OUTPUT%/etri_05_event.pickle --output_video %VIDEO%/etri_05_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_03.yaml --camera %VIDEO%/etri_03.mp4 --output %OUTPUT%/etri_03_event.pickle --output_video %VIDEO%/etri_03_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+
+dna_node %CONF%/etri_06.yaml --camera %VIDEO%/etri_06.mp4 --output %OUTPUT%/etri_06_event.pickle --output_video %VIDEO%/etri_06_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_07.yaml --camera %VIDEO%/etri_07.mp4 --output %OUTPUT%/etri_07_event.pickle --output_video %VIDEO%/etri_07_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+
+
+
+REM =============================== [Build Database (for motion)] ===============================
+dna_merge_sort_events %OUTPUT%/etri_01_event.pickle %OUTPUT%/etri_02_event.pickle %OUTPUT%/etri_03_event.pickle ^
+%OUTPUT%/etri_04_event.pickle %OUTPUT%/etri_05_event.pickle %OUTPUT%/etri_06_event.pickle ^
+%OUTPUT%/etri_07_event.pickle --node_offsets "%NODE_OFFSETS%" --output %OUTPUT%/etri_motion.pickle
+
+REM ------------------ [Check Database] --------------------
+dna_show_mc_locations %OUTPUT%/etri_motion.pickle
+dna_show_mc_locations %OUTPUT%/etri_04_event.pickle %OUTPUT%/etri_05_event.pickle --offsets 10,7,16,10,12,15,0
+dna_print_events -f %OUTPUT%/etri_motion.pickle
+
+REM =============================== [Build Database (for feature)] ===============================
+dna_merge_sort_events %OUTPUT%/etri_01r_event.pickle %OUTPUT%/etri_02_event.pickle %OUTPUT%/etri_04_event.pickle ^
+%OUTPUT%/etri_06r_event.pickle %OUTPUT%/etri_07r_event.pickle --node_offsets "%NODE_OFFSETS%" --output %OUTPUT%/etri_feature.pickle
+
+REM =============================== [Build Database (for hybrid)] ===============================
+dna_merge_sort_events %OUTPUT%/etri_01_event.pickle %OUTPUT%/etri_02_event.pickle %OUTPUT%/etri_03_event.pickle ^
+%OUTPUT%/etri_04_event.pickle %OUTPUT%/etri_05_event.pickle %OUTPUT%/etri_06r_event.pickle ^
+%OUTPUT%/etri_07_event.pickle --node_offsets "%NODE_OFFSETS%" --output %OUTPUT%/etri_hybrid.pickle
+REM ------------------ [Check Database] --------------------
+dna_show_mc_locations %OUTPUT%/etri_hybrid.pickle
+
+
+
+REM =============================== [Format Kafka Topics and Databases] ===============================
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete.json
+jarvey format node_tracks_index
+jarvey format track_features_index
+jarvey format associations
+
+
+REM =============================== [Associate tracklets (Motion based batch)] ===============================
+dna_replay %OUTPUT%/etri_motion.pickle --progress --max_wait_ms 1000
+jarvey build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_m.yaml --kafka_offset earliest --cleanup
+jarvey build global_tracks --kafka_offset earliest --cleanup --stop_on_timeout
+dna_show_gtracks --topic global-tracks --show_supports --output_video %OUTPUT%/global_tracks_motion.mp4 --kafka_offset earliest --stop_on_timeout
+dna_export --topic global-tracks --output %OUTPUT%/global_tracks_motion.json --kafka_offset earliest --stop_on_timeout
+
+
+REM =============================== [Associate tracklets (Feature based batch)] ===============================
+dna_replay %OUTPUT%/etri_feature.pickle --progress --max_wait_ms 1000
+jarvey build track_features_index --kafka_offset earliest --cleanup --stop_on_timeout
+jarvey build node_tracks_index --kafka_offset earliest --cleanup --stop_on_timeout
+jarvey build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_f5.yaml --kafka_offset earliest
+jarvey build global_tracks --config %JARVEY_STREAMS_HOME%/mcmot_configs_f5.yaml --kafka_offset earliest --cleanup --stop_on_timeout
+dna_show_gtracks --show_supports --output_video %OUTPUT%/global_tracks_feature.mp4 --kafka_offset earliest --stop_on_timeout
+dna_export --topic global-tracks --output %OUTPUT%/global_tracks_feature.json --kafka_offset earliest --stop_on_timeout
+
+REM =============================== [Associate tracklets (Feature based stream)] ===============================
+start jarvey build node_tracks_index
+start jarvey build track_features_index
+start jarvey build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_f5.yaml
+start jarvey build global_tracks --config %JARVEY_STREAMS_HOME%/mcmot_configs_f5.yaml
+start dna_show_gtracks --show_supports --output_video %OUTPUT%/global_tracks_feature.mp4 --sync
+start dna_export --topic global-tracks --output %OUTPUT%/global_tracks_feature.json
+ping 127.0.0.1 -n 10 > NUL
+dna_replay %OUTPUT%/etri_feature.pickle --progress --max_wait_ms 1000 --sync
+
+
+REM =============================== [Associate tracklets (Hybrid stream)] ===============================
+start jarvey build node_tracks_index
+start jarvey build track_features_index
+start jarvey build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_h.yaml
+rem start jarvey build global_tracks --config %JARVEY_STREAMS_HOME%/mcmot_configs_h.yaml
+rem start dna_show_gtracks --show_supports --output_video %OUTPUT%/global_tracks_hybrid.mp4 --sync
+rem start dna_export --topic global-tracks --output %OUTPUT%/global_tracks_hybrid.json
+ping 127.0.0.1 -n 10 > NUL
+
+dna_replay %OUTPUT%/etri_hybrid.pickle --progress --max_wait_ms 1000 --sync
+
+jarvey build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_h.yaml --kafka_offset earliest --cleanup
+jarvey build global_tracks --config %JARVEY_STREAMS_HOME%/mcmot_configs_f5.yaml --kafka_offset earliest --cleanup --stop_on_timeout
+dna_show_gtracks --show_supports --output_video %OUTPUT%/global_tracks_hybrid.mp4  --kafka_offset earliest --stop_on_timeout
+
+
+
+REM =============================== [Import Global tracks into Kairos DB] ===============================
+jarvey build trajectories --exporter-jdbc-url kairos:129.254.82.161:5000:root:root:DNA
+
+
+
+
+
+
+
+dna_replay %OUTPUT%/etri_feature.pickle --progress --max_wait_ms 1000 --sync
+
+
+REM -----------------------------
+dna_merge_sort_events %OUTPUT%/etri_01_event.pickle %OUTPUT%/etri_02_event.pickle %OUTPUT%/etri_03_event.pickle ^
+%OUTPUT%/etri_04_event.pickle %OUTPUT%/etri_05_event.pickle %OUTPUT%/etri_06_event.pickle ^
+%OUTPUT%/etri_07_event.pickle --node_offsets "%NODE_OFFSETS%" --output %OUTPUT%/etri_motion.pickle
+
+dna_show_mc_locations %OUTPUT%/etri_motion.pickle
+dna_show_mc_locations %OUTPUT%/etri_02_event.pickle %OUTPUT%/etri_03_event.pickle --offsets 11,2,5,0,3,7,9
+
+
+REM =============================== [Associate running global tracks (Motion based)] ===============================
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete.json
+format_associations
+REM -----------------------------
+start dna_export --kafka_offset earliest --topic global-tracks-running --output %OUTPUT%/global_tracks_running_motion.json --stop_on_timeout --timeout_ms 2000
+start dna_show_gtracks --topic global-tracks-running --show_supports --output_video %OUTPUT%/global_tracks_running_motion.mp4 --stop_on_timeout --timeout_ms 2000
+start associate_tracklets --config %JARVEY_STREAMS_HOME%/mcmot_configs_m.yaml --log4j2 %JARVEY_STREAMS_HOME%/log4j2.xml --cleanup
+dna_replay %OUTPUT%/etri_motion.pickle --progress --max_wait_ms 1000 --sync
+
+
+
+REM =============================== [Generate final global tracks (Motion based)] ===============================
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete-global-tracks.json
+generate_final_global_tracks --overlap-area %JARVEY_STREAMS_HOME%/overlap_areas_m.yaml --auto-offset-reset earliest
+
+start dna_export --kafka_offset earliest --topic global-tracks --output %OUTPUT%/global_tracks_motion.json --stop_on_timeout --timeout_ms 2000
+dna_show_gtracks --topic global-tracks --show_supports --output_video %OUTPUT%/global_tracks_motion.mp4 --stop_on_timeout --timeout_ms 2000
+dna_smooth_trajs --topic global-tracks --stop_on_timeout --timeout_ms 2000 --output %OUTPUT%/smooth.json
+
+
+
+
+REM =============================== [Associate running global tracks (Motion based)] ===============================
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete.json
+jarvey format node_tracks_index
+jarvey format track_features_index
+jarvey format associations
+REM -----------------------------
+start jarvey build node_tracks_index
+start jarvey build track_features_index
+start jarvey build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_m.yaml
+start jarvey build global_tracks
+start dna_show_gtracks --topic global-tracks --show_supports --output_video %OUTPUT%/global_tracks_motion.mp4 --stop_on_timeout --initial_timeout_ms 30000
+rem start jarvey build trajectories --exporter-jdbc-url kairos:129.254.82.161:5000:root:root:DNA 
+
+start dna_export --kafka_offset earliest --topic global-tracks --output %OUTPUT%/global_tracks_motion.json --stop_on_timeout --initial_timeout_ms 30000
+
+dna_replay %OUTPUT%/etri_motion.pickle --progress --max_wait_ms 1000
+jarvey build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_m.yaml --kafka_offset earliest --stop_on_timeout
+jarvey build global_tracks --kafka_offset earliest --cleanup --stop_on_timeout
+dna_show_gtracks --topic global-tracks --show_supports --output_video %OUTPUT%/global_tracks_motion.mp4 --stop_on_timeout --kafka_offset earliest
+dna_export --kafka_offset earliest --topic global-tracks --output %OUTPUT%/global_tracks_motion.json --stop_on_timeout
+
+
+
+REM =============================== [Import Global tracks into Kairos DB] ===============================
+kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete.json
+
+

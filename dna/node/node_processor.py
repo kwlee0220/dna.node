@@ -19,9 +19,10 @@ def build_node_processor(image_processor:ImageProcessor, conf: OmegaConf,
     if not tracking_pipeline:
         tracker_conf = config.get_or_insert_empty(conf, 'tracker')
         tracking_pipeline = TrackingPipeline.load(tracker_conf)
-    image_processor.add_clean_frame_reader(tracking_pipeline)
+    image_processor.set_frame_processor(tracking_pipeline)
+    
     if tracking_pipeline.info_drawer:
-        image_processor.add_frame_processor(tracking_pipeline.info_drawer)
+        image_processor.add_frame_updater(tracking_pipeline.info_drawer)
 
     # TrackEventPipeline 생성하고 TrackingPipeline에 등록함
     publishing_conf = config.get_or_insert_empty(conf, 'publishing')

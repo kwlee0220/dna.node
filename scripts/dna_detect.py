@@ -1,15 +1,13 @@
 from contextlib import closing
 import sys
-from datetime import timedelta
 
 import argparse
 from omegaconf import OmegaConf
 
 import dna
-from dna import config, initialize_logger
-from dna.camera import ImageProcessor, create_camera_from_conf
+from dna import config, camera, initialize_logger
 from dna.detect.detecting_processor import DetectingProcessor
-from scripts.utils import filter_camera_conf, add_image_processor_arguments, to_image_processor_options
+from scripts.utils import to_camera_options, add_image_processor_arguments, to_image_processor_options
 
 __DEFAULT_DETECTOR_URI = 'dna.detect.yolov5:model=l&score=0.4'
 # __DEFAULT_DETECTOR_URI = 'dna.detect.yolov4'
@@ -31,13 +29,13 @@ def run(args):
     conf = config.load(args.conf) if args.conf else OmegaConf.create()
     
     # 카메라 설정 정보 추가
-    config.update(conf, 'camera', filter_camera_conf(args))
-    camera = create_camera_from_conf(conf.camera)
+    config.update(conf, 'camera', to_camera_options(args))
+    cam = camera.load_camera(**dict(conf.camera))
         
     # args에 포함된 ImageProcess 설정 정보를 추가한다.
     config.update_values(conf, config.to_conf(args))
     options = to_image_processor_options(conf)
-    img_proc = ImageProcessor(camera.open(), **options)
+    img_proc = camera.create_image_processor(camera=cam, **options)
     
     # detector 설정 정보
     detector_uri = args.detector
@@ -45,12 +43,12 @@ def run(args):
         detector_uri = config.get(conf, "tracker.dna_deepsort.detector")
     if detector_uri is None:
         detector_uri = __DEFAULT_DETECTOR_URI
-        # print('detector is not specified', file=sys.stderr)
     detector = DetectingProcessor.load(detector_uri=detector_uri,
                                         output=args.output,
                                         draw_detections=img_proc.is_drawing)
-    img_proc.add_frame_processor(detector)
-    result: ImageProcessor.Result = img_proc.run()
+    img_proc.set_frame_processor(detector)
+    
+    result = img_proc.run()
     print(result)
     
 

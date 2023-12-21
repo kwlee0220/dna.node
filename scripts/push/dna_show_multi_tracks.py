@@ -11,8 +11,7 @@ import cv2
 from omegaconf import OmegaConf
 from kafka import KafkaConsumer
 
-from dna import Box, Image, BGR, color, Frame, Point, TrackletId, initialize_logger, config
-from dna.camera import Camera
+from dna import Box, Image, BGR, color, Point, TrackletId, initialize_logger, config
 from dna.event import NodeTrack, read_topics
 from dna.node import stabilizer
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType

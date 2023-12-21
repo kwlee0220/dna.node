@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeAlias, NewType, Union, Iterable
-from collections.abc import Callable
+from typing import TypeAlias, NewType,  Iterable, Union, Callable
 import numbers
 from dataclasses import dataclass, field
 
@@ -19,7 +18,7 @@ class InvalidStateError(ValueError):
 NodeId = NewType('NodeId', str)
 TrackId = NewType('TrackId', str)
 Image = NewType('Image', np.ndarray)
-ByteString:TypeAlias = Union[bytes, bytearray, memoryview]
+ByteString:TypeAlias = bytes|bytearray|memoryview
 
 
 @dataclass(frozen=True, order=True, eq=True) # slots=True

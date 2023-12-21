@@ -1,0 +1,19 @@
+version: '3.1'
+name: dna-export
+
+services:
+
+###########################################################################
+############################ DNA Topic Export #############################
+###########################################################################
+  dna-export:
+    container_name: 'dna-export'
+    image: kwlee0220/dna-export
+    command: dna_export_topics --db_host postgres --kafka_brokers kafka02:19092 --topic node-tracks track-motions track-features -f
+    networks:
+      - dna_server_net
+
+networks:
+  dna_server_net:
+    external: true
+    internal: true

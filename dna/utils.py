@@ -105,6 +105,14 @@ def get_or_else(value:T, else_value:Union[T,Callable[[],T]]) -> T:
     else:
         return else_value() if callable(else_value) else else_value
 
+def try_supply(supply:Callable[[],T], else_value:T|Callable[[],T]) -> T:
+    try:
+        return supply()
+    except Exception:
+        if isinstance(else_value, Callable):
+            return else_value()
+        else:
+            return else_value
 
 
 def detect_outliers(values:list[T], weight:float=1.5, *,

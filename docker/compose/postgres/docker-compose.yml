@@ -1,0 +1,22 @@
+version: '3.1'
+
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: dna
+      POSTGRES_PASSWORD: urc2004
+      POSTGRES_DB: dna
+    ports:
+      - "6432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
+
+networks:
+  dna_server_net:
+    external: true
+    internal: true

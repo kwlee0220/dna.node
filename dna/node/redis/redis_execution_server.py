@@ -10,8 +10,8 @@ from redis.exceptions import ConnectionError
 from omegaconf import OmegaConf
 from pathlib import Path
 
-from dna import config, utils
-from dna.camera import Frame, ImageProcessor, create_camera_from_conf, FrameProcessor
+from dna import config, utils, camera
+from dna.camera import FrameProcessor
 from dna.node.node_processor import NodeTrackEventPipeline
 from dna.execution import ExecutionContext, AbstractExecution, ExecutionState
 from dna.support import redis as dna_redis
@@ -163,10 +163,10 @@ class RedisExecutionServer:
         config.update_values(conf, request, "show")
         
         config.update(conf, "camera", request.camera)
-        camera = create_camera_from_conf(conf.camera)
+        cam = camera.load_camera(**dict(conf.camera))
         
         options = config.filter(conf, 'show', 'output_video', 'progress', 'title')
-        img_proc = ImageProcessor(camera.open(), context=context, **options)
+        img_proc = camera.create_image_processor(camera=cam, context=context, **options)
         
         _, node_track_pipeline = build_node_processor(img_proc, conf)
         

@@ -1,11 +1,15 @@
 from __future__ import annotations
 
-from typing import Optional
-from abc import ABCMeta, abstractmethod
+from typing import NewType, Protocol, Optional, runtime_checkable
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 
-from dna import Size2d, Image
+import numpy as np
 
+from dna import Size2d
+
+
+Image = NewType('Image', np.ndarray)
 
 @dataclass(frozen=True, eq=True, slots=True)
 class Frame:
@@ -16,133 +20,77 @@ class Frame:
     index: int
     ts: float
     
+    def __repr__(self) -> str:
+        h, w, d = self.image.shape
+        return f'{self.__class__.__name__}[image={w}x{h}, index={self.index}, ts={self.ts}]'
 
-class Camera(metaclass=ABCMeta):
-    @abstractmethod
-    def open(self) -> ImageCapture:
-        """Open this camera.
+  
+@runtime_checkable
+class ImageGrabber(Protocol):
+    def grab_image(self) -> Optional[Image]: ...
+    
 
-        Returns:
-            ImageCapture: an ImageCapture object that captures images from this camera.
-        """
-        pass
-
+class Camera(ABC):
     @property
     @abstractmethod
     def uri(self) -> str:
-        """Returns the URI of this Camera.
-
-        Returns:
-            str: URI of this camera.
-        """
-        pass
-
+        raise NotImplementedError("Camera.uri")
+    
     @property
     @abstractmethod
-    def size(self) -> Size2d:
-        """The image size captured from this Camera.
+    def image_size(self) -> Size2d:
+        raise NotImplementedError("Camera.image_size")
+    
+    @property
+    @abstractmethod
+    def fps(self) -> int:
+        raise NotImplementedError("Camera.fps")
 
-        Returns:
-            Size2d: the image size captured from this Camera
-        """
-        pass
-
-    def resize(self, size:Size2d) -> Camera:
-        """Returns a Camera that captures the resized images.
-
-        Args:
-            size (Size2d): target image size.
-
-        Returns:
-            Camera: Camera
-        """
-        from .resized_camera import ResizingCamera
-        return ResizingCamera(self, size)
+    @abstractmethod
+    def open(self) -> ImageCapture:
+        raise NotImplementedError("Camera.open")
 
 
-class ImageCapture(metaclass=ABCMeta):
+# extends (Iterator, Closeable)
+class ImageCapture(ABC):
     @abstractmethod
     def close(self) -> None:
         """Closes this ImageCapture.
         """
-        pass
+        raise NotImplementedError("ImageCapture.close")
+    
+    @abstractmethod
+    def camera(self) -> Camera:
+        raise NotImplementedError("ImageCapture.camera")
+    
+    def __iter__(self) -> ImageCapture:
+        return self
 
     @abstractmethod
-    def is_open(self) -> bool:
-        """Returns whether this is opened or not.
-
-        Returns:
-            bool: True if this is opened, False otherwise.
-        """
-        pass
-
-    @abstractmethod
-    def __call__(self) -> Optional[Frame]:
+    def __next__(self) -> Frame:
         """Captures an OpenCV image frame.
         If it fails to capture an image, this method returns None.
 
         Returns:
             Frame: captured image frame.
         """
-        pass
-
+        raise NotImplementedError("ImageCapture.__next__")
+    
     @property
     @abstractmethod
-    def camera(self) -> Camera:
-        """Returns source camera object that this capture is from.
-
-        Returns:
-            Camera: a camera object.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def size(self) -> Size2d:
-        """Returns the size of the images that this ImageCapture captures.
-
-        Returns:
-            Size2d: (width, height)
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def fps(self) -> int:
-        """Returns the fps of this ImageCapture.
-
-        Returns:
-            int: frames per second.
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def frame_index(self) -> int:
-        """Returns the total count of images this ImageCapture has captured so far.
-
-        Returns:
-            int: The number of frames
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def sync(self) -> bool:
-        """Returns whether frames are captured on its fps or immediately as they are captured from the camera.
-
-        Returns:
-            bool: synchronized capture or not
-        """
-        pass
-
-    @property
-    @abstractmethod
-    def repr_str(self) -> str:
-        pass
+    def initial_ts(self) -> int:
+        raise NotImplementedError("ImageCapture.initial_ts")
+        
+    def __enter__(self) -> ImageCapture:
+        return self
+        
+    def __exit__(self, exc_type, exc_value, traceback) -> bool:
+        from contextlib import suppress
+        with suppress(Exception): self.close()
+        return False
     
 
-class VideoWriter(metaclass=ABCMeta):
+class VideoWriter(ABC):
     @abstractmethod
     def close(self) -> None:
         """Closes this VideoWriter.

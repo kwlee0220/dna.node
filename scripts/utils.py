@@ -7,8 +7,24 @@ import argparse
 from omegaconf import OmegaConf
 
 from dna import config
+from dna.camera import Camera, load_camera
 from dna.event import KafkaEvent
 from dna.event.json_event import JsonEventImpl
+
+
+def load_camera_from_conf(conf:OmegaConf|dict[str,Any]) -> Camera:
+    """Create a camera from OmegaConf configuration.
+
+    Args:
+        conf (OmegaConf|dict[str,Any]): configuration.
+
+    Returns:
+        OpenCvCamera: an OpenCvCamera object.
+    """
+    if isinstance(conf, OmegaConf):
+        conf = dict(conf)
+    options = {k:v for k, v in conf.items() if k != 'uri'}
+    return load_camera(conf.uri, **options)
 
 
 def read_json_events(args:argparse.Namespace, *,
@@ -32,32 +48,6 @@ def read_json_events(args:argparse.Namespace, *,
     else:
         from dna.event import read_text_line_file
         return map(deserialize, read_text_line_file(input_file))
-
-
-def filter_camera_conf(args:dict[str,object]|argparse.Namespace) -> OmegaConf:
-    if isinstance(args, argparse.Namespace):
-        args = vars(args)
-    
-    conf = OmegaConf.create()
-    if (v := args.get("camera", None)):
-        conf.uri = v
-    if (v := args.get("begin_frame", None)):
-        conf.begin_frame = v
-    if (v := args.get("end_frame", None)):
-        conf.end_frame = v
-    if (v := args.get("init_ts", None)):
-        conf.init_ts = v
-    if (v := args.get("sync", None)) is not None:
-        conf.sync = v
-    if (v := args.get("nosync", None)) is not None:
-        conf.sync = not v
-    if (v := args.get("title", None)):
-        conf.title = v
-    if (v := args.get("show", None)) is not None:
-        conf.show = v
-    if (v := args.get("hide", None)) is not None:
-        conf.show = not v
-    return conf
 
 
 def parse_true_false_string(truth:str):
@@ -152,6 +142,35 @@ def add_kafka_consumer_arguments(parser:argparse.ArgumentParser) -> None:
                         help="Kafka poll timeout in milli-seconds")
     parser.add_argument("--initial_timeout_ms", metavar="milli-seconds", type=int, default=5000,
                         help="initial Kafka poll timeout in milli-seconds")
+
+
+def to_camera_options(args:dict[str,object]|argparse.Namespace|OmegaConf) -> dict[str,Any]:
+    if isinstance(args, argparse.Namespace):
+        args = vars(args)
+    elif isinstance(args, OmegaConf):
+        args = dict(args)
+    
+    options:dict[str,Any] = dict()
+    if (v := args.get("camera", None)):
+        options['uri'] = v
+    if (v := args.get("begin_frame", None)):
+        options['begin_frame'] = v
+    if (v := args.get("end_frame", None)):
+        options['end_frame'] = v
+    if (v := args.get("init_ts", None)):
+        options['init_ts'] = v
+    if (v := args.get("sync", None)) is not None:
+        options['sync'] = v
+    if (v := args.get("nosync", False)):
+        options['sync'] = not v
+    if (v := args.get("title", None)):
+        options['title'] = v
+    if (v := args.get("show", None)) is not None:
+        options['show'] = v
+    if (v := args.get("hide", False)):
+        options['show'] = not v
+        
+    return options
     
 
 def to_image_processor_options(conf:OmegaConf) -> dict[str,Any]:

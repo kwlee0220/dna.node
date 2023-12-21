@@ -5,13 +5,16 @@ from typing import Optional
 import cv2
 
 from dna import Box, color
-from dna.camera import Frame, FrameProcessor, ImageProcessor
+from dna.camera import Frame, FrameUpdater, ImageProcessor, ImageCapture
 from dna.event import EventListener
 from .events import ZoneSequence
 
 
-class ZoneSequenceDisplay(FrameProcessor,EventListener):
+class ZoneSequenceDisplay(EventListener, FrameUpdater):
     def __init__(self) -> None:
+        EventListener.__init__(self)
+        FrameUpdater.__init__(self)
+        
         self.sequence_count:dict[str,int] = dict()
         self.track_locations:dict[str,Box] = dict()
         self.motion_tracks:set[int] = set()
@@ -29,14 +32,14 @@ class ZoneSequenceDisplay(FrameProcessor,EventListener):
             self.sequence_count[seq_str] += 1
             self.motion_tracks.add(zseq.track_id)
 
-    def on_started(self, proc:ImageProcessor) -> None:
+    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None:
         for key in self.sequence_count.keys():
             self.sequence_count[key] = 0
 
-    def on_stopped(self) -> None:
+    def close(self) -> None:
         pass
 
-    def process_frame(self, frame:Frame) -> Optional[Frame]:
+    def update(self, frame:Frame) -> Optional[Frame]:
         y_offset = 20
         convas = frame.image
         

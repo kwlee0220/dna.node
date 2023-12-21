@@ -9,8 +9,8 @@ from pathlib import Path
 import cv2
 
 from dna import Image, Size2d
-from .types import Frame, VideoWriter
-from .image_processor import FrameProcessor, ImageProcessor
+from dna.camera import Frame, ImageCapture, VideoWriter
+from .image_processor import FrameReader, ImageProcessor
 
 
 class OpenCvVideoWriter(VideoWriter):
@@ -67,30 +67,29 @@ class OpenCvVideoWriter(VideoWriter):
         
 
 
-class OpenCvWriteProcessor(FrameProcessor):
-    __slots__ = ( 'path', 'logger', '_writer' )
+class OpenCvWriteProcessor(FrameReader):
+    __slots__ = ( 'path', 'logger', '__writer' )
     
-    def __init__(self, path: Path,
+    def __init__(self, path: str,
                  *,
                  logger:Optional[logging.Logger]=None) -> None:
-        self.path = path.resolve()
+        self.path = path
         self.logger = logger
-        self._writer = None
+        self.__writer = None
         
-    def on_started(self, img_proc:ImageProcessor) -> None:
+    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None:
         if self.logger and self.logger.isEnabledFor(logging.INFO):
             self.logger.info(f'opening video file: {self.path}')
-        self._writer = OpenCvVideoWriter(self.path.resolve(), img_proc.capture.fps, img_proc.capture.size)
+        self.__writer = OpenCvVideoWriter(self.path, capture.fps, img_proc.show_size)
 
-    def on_stopped(self) -> None:
+    def close(self) -> None:
         if self.logger and self.logger.isEnabledFor(logging.INFO):
             self.logger.info(f'closing video file: {self.path}')
         with suppress(Exception):
-            self._writer.close()
-            self._writer = None
+            self.__writer.close()
+            self.__writer = None
 
-    def process_frame(self, frame:Frame) -> Optional[Frame]:
-        if self._writer is None:
+    def read(self, frame:Frame) -> None:
+        if self.__writer is None:
             raise ValueError(f'OpenCvWriteProcessor has not been started')
-        self._writer.write(frame.image)
-        return frame
+        self.__writer.write(frame.image)

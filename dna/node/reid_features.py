@@ -9,13 +9,13 @@ import numpy as np
 
 from dna import utils, Size2d, TrackId
 from dna.support import iterables
-from dna.camera import Frame, FrameProcessor, ImageProcessor
+from dna.camera import Frame, FrameReader, ImageProcessor, ImageCapture
 from dna.event import NodeTrack, TrackFeature, EventProcessor
 from dna.track import TrackState
 from dna.track.feature_extractor import MetricExtractor
 
 
-class PublishReIDFeatures(FrameProcessor,EventProcessor):
+class PublishReIDFeatures(FrameReader,EventProcessor):
     MAX_FRAME_BUFFER_LENGTH = 80
     REPRESENTATIVE_COUNT = 5
     
@@ -23,7 +23,8 @@ class PublishReIDFeatures(FrameProcessor,EventProcessor):
                  distinct_distance:float, min_crop_size:Size2d, max_iou:float,
                  *,
                  logger:Optional[logging.Logger]=None) -> None:
-        super().__init__()
+        FrameReader.__init__(self)
+        EventProcessor.__init__(self)
         
         self.extractor = extractor
         self.distinct_distance = distinct_distance
@@ -125,17 +126,15 @@ class PublishReIDFeatures(FrameProcessor,EventProcessor):
             repr.pop(0)
         return True, min_dist
               
-    def on_started(self, proc:ImageProcessor) -> None: pass
-    def on_stopped(self) -> None: pass
+    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None: pass
+    def close(self) -> None: pass
 
-    def process_frame(self, frame:Frame) -> Optional[Frame]:
+    def read(self, frame:Frame) -> None:
         self.frame_buffer.append(frame)
         
         # 너무 많은 수의 frame이 buffering되어 일정 길이 이상이 되는 경우, 오래된 frame부터 삭제시킨다.
         if len(self.frame_buffer) > PublishReIDFeatures.MAX_FRAME_BUFFER_LENGTH:
             self.frame_buffer.pop(0)
-        
-        return frame
         
     def pop_frame(self, frame_index:int) -> Optional[Frame]:
         if not self.frame_buffer or frame_index < self.frame_buffer[0].index:

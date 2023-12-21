@@ -14,7 +14,6 @@ import argparse
 
 from dna import Box, Image, BGR, color, Point, initialize_logger
 from dna.support import iterables
-from dna.camera import Frame, Camera
 from dna.event import NodeTrack
 from dna.event.utils import read_event_file
 from dna.node.world_coord_localizer import ContactPointType, WorldCoordinateLocalizer

@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import argparse
 
-from scripts import dna_copy, dna_node, dna_replay_node_events, dna_download_node_events, dna_node_server
+from scripts import dna_node, dna_replay_node_events, dna_node_server
 from scripts import dna_show, dna_detect, dna_track, dna_show_global_tracks, dna_show_mc_locations
 from scripts import dna_draw_trajs, dna_show_multiple_videos, dna_smooth_trajs
-from scripts import dna_export_topic, dna_import_topic
+from scripts.push import dna_download_node_events
 
 
 def parse_show_args(parser_show):
