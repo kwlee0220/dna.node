@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 from contextlib import closing
 import pickle
 import argparse
@@ -18,7 +18,7 @@ def define_args(parser) -> None:
     parser.add_argument("--filter", metavar="expr", help="predicate expression", default=None)
   
      
-def run(args) -> None:
+def run(args:argparse.Namespace) -> None:
     filter = compile(args.filter, "<string>", 'eval') if args.filter is not None else None
     
     if args.files is not None:

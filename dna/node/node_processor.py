@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 import logging
 
-from omegaconf import OmegaConf
+from omegaconf.dictconfig import DictConfig
 
 from dna import config
 from dna.camera import ImageProcessor
@@ -11,7 +11,7 @@ from dna.track.track_pipeline import TrackingPipeline
 from .track_event_pipeline import NodeTrackEventPipeline
  
 
-def build_node_processor(image_processor:ImageProcessor, conf: OmegaConf,
+def build_node_processor(image_processor:ImageProcessor, conf: DictConfig,
                          *,
                          tracking_pipeline:Optional[TrackingPipeline]=None) \
     -> tuple[TrackingPipeline, NodeTrackEventPipeline]:

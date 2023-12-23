@@ -3,6 +3,7 @@ warnings.filterwarnings("ignore")
 
 from contextlib import closing
 from datetime import timedelta
+from collections import ChainMap
 
 import argparse
 from omegaconf import OmegaConf
@@ -13,24 +14,16 @@ warnings.filterwarnings("ignore", category=SourceChangeWarning)
 
 import dna
 from dna import config, camera
+from dna.camera import ImageProcessorOptions
 from dna.track import TrackingPipeline
-from scripts.utils import to_camera_options
+from scripts.utils import add_image_processor_arguments
 
 
 def define_args(parser):
     parser.add_argument("--conf", metavar="file path", help="configuration file path")
-    
-    parser.add_argument("--camera", metavar="uri", help="target camera uri")
-    parser.add_argument("--sync", action='store_true', help="sync to camera fps")
-    parser.add_argument("--begin_frame", type=int, metavar="number", default=1, help="the first frame number")
-    parser.add_argument("--end_frame", type=int, metavar="number", default=argparse.SUPPRESS,
-                        help="the last frame number")
+    add_image_processor_arguments(parser)
 
     parser.add_argument("--output", "-o", metavar="csv file", default=argparse.SUPPRESS, help="output detection file.")
-    parser.add_argument("--output_video", "-v", metavar="mp4 file", help="output video file.", default=None)
-    parser.add_argument("--show", "-s", nargs='?', const='0x0', default=None)
-    parser.add_argument("--progress", help="display progress bar.", action='store_true')
-
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
 
 
@@ -40,20 +33,13 @@ def run(args):
     # argument에 기술된 conf를 사용하여 configuration 파일을 읽는다.
     conf = config.load(args.conf) if args.conf else OmegaConf.create()
     
-    # 카메라 설정 정보 추가
-    config.update(conf, 'camera', to_camera_options(args))
-    cam = camera.load_camera(**dict(conf.camera))
-
-    # args에 포함된 ImageProcess 설정 정보를 추가한다.
-    config.update_values(conf, args, 'show', 'output_video', 'progress')
-    options = config.to_dict(config.filter(conf, 'show', 'output_video', 'progress'))
-    img_proc = camera.create_image_processor(camera=cam, **options)
-    
     tracker_conf = config.get_or_insert_empty(conf, 'tracker')
     config.update_values(tracker_conf, args, 'output')
-    
     tracking_pipeline = TrackingPipeline.load(tracker_conf)
-    img_proc.set_frame_processor(tracking_pipeline)
+    
+    opts_dict = ChainMap(vars(args), dict(conf.camera))
+    options = ImageProcessorOptions(dict(opts_dict))
+    img_proc = camera.create_image_processor(options, frame_processor=tracking_pipeline)
     if tracking_pipeline.info_drawer:
         img_proc.add_frame_updater(tracking_pipeline.info_drawer)
 

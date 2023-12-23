@@ -3,15 +3,17 @@ from __future__ import annotations
 from typing import Optional, Any
 import logging
 
+import dataclasses
 from argparse import Namespace
 import threading
 import redis
 from redis.exceptions import ConnectionError
 from omegaconf import OmegaConf
+from omegaconf.dictconfig import DictConfig
 from pathlib import Path
 
 from dna import config, utils, camera
-from dna.camera import FrameProcessor
+from dna.camera import FrameProcessor, ImageProcessor
 from dna.node.node_processor import NodeTrackEventPipeline
 from dna.execution import ExecutionContext, AbstractExecution, ExecutionState
 from dna.support import redis as dna_redis
@@ -52,7 +54,7 @@ class RedisExecutionContext(ExecutionContext):
             'id': self.id,
             'state': ExecutionState.COMPLETED.name,
             'timestamp': utils.utc_now_millis(),
-            'result': result
+            'result': dataclasses.asdict(result)
         }
         self.reply(completed)
 
@@ -92,19 +94,17 @@ class RedisExecutionServer:
                     pubsub.get_message(timeout=1)
                     
                     while True:
-                        req = pubsub.get_message(timeout=None)
-                        self.on_request(redis=redis, req=req['data'])
+                        req:dict[str,Any] = pubsub.get_message(timeout=None)  # type: ignore
+                        request:DictConfig = config.to_conf(self.serde.deserialize(req['data']))
+                        self.on_request(redis=redis, req=request)
                 except ConnectionError as e:
                     import sys
                     print(f"retry to connect Redis server: url: '{self.redis_url}'", file=sys.stderr)
 
-    def on_request(self, redis:redis.Redis, req:str) -> None:
+    def on_request(self, redis:redis.Redis, req:DictConfig) -> None:
         context = None
         try:
-            req = self.serde.deserialize(req)
-            req = config.to_conf(req)
-            
-            id = config.get(req, 'id')
+            id:str = config.get(req, 'id')
             if id is None:
                 raise ValueError(f"'id' is not specified. msg={req}")
             
@@ -116,7 +116,7 @@ class RedisExecutionServer:
                 
             if req.action != "track":
                 if self.logger.isEnabledFor(logging.WARN):
-                    self.logger.warn(f"unknown action: req={req}")
+                    self.logger.warn(f"unknown action: action={req.action}, req={req}")
                 return
             
             channels = req.channels
@@ -137,11 +137,10 @@ class RedisExecutionServer:
             if context is not None:
                 context.failed(e)
             
-    def create_execution(self, context:RedisExecutionContext, request:Any) \
+    def create_execution(self, context:RedisExecutionContext, request:DictConfig) \
         -> tuple[ImageProcessor, NodeTrackEventPipeline]:
         from dna.node.node_processor import build_node_processor
 
-        request = OmegaConf.create(request)
         if config.exists(request, 'node'):
             node_conf_fname = request.node.replace(":", "_") + '.yaml'
             path = Path(self.args.conf_root) / node_conf_fname
@@ -151,6 +150,8 @@ class RedisExecutionServer:
                 self.logger.error(f"fails to load node configuration file: "
                                   f"conf_root={self.args.conf_root}, node={request.node}, path='{path}'")
                 raise e
+        else:
+            conf = request
                 
         # args에 포함된 ImageProcess 설정 정보를 추가한다.
         config.update_values(conf, self.args, 'show', 'output_video', 'progress', 'title')

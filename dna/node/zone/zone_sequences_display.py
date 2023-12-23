@@ -32,7 +32,7 @@ class ZoneSequenceDisplay(EventListener, FrameUpdater):
             self.sequence_count[seq_str] += 1
             self.motion_tracks.add(zseq.track_id)
 
-    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None:
+    def open(self, img_proc:ImageProcessor) -> None:
         for key in self.sequence_count.keys():
             self.sequence_count[key] = 0
 

@@ -39,10 +39,10 @@ def utc_now_millis() -> int:
     return round(utc_now_seconds() * 1000)
 
 
-def _parse_keyvalue(kv) -> tuple[str,str]:
-    pair = kv.split('=')
+def _parse_keyvalue(kv:str) -> tuple[str,str]:
+    pair:list[str] = kv.split('=')
     if len(pair) == 2:
-        return tuple(pair)
+        return (pair[0], pair[1])
     else:
         return pair, None
 
@@ -82,7 +82,10 @@ def initialize_logger(logger_conf_file: Optional[str]=None):
     
     if logger_conf_file is None:
         import pkgutil
-        logger_conf_text = pkgutil.get_data('conf', 'logger.yaml')
+        data = pkgutil.get_data('conf', 'logger.yaml')
+        if data is None:
+            raise ValueError(f"Cannot read the default logger configuration: logger.yaml")
+        logger_conf_text = data.decode('utf-8')
     else:
         with open(logger_conf_file, 'rt') as f:
             logger_conf_text = f.read()
@@ -121,7 +124,7 @@ def detect_outliers(values:list[T], weight:float=1.5, *,
     
     keys = [key(v) for v in values] if key else values
     
-    v25, v75 = np.percentile(keys, [25, 75])
+    v25, v75 = np.percentile(keys, [25, 75])    # type: ignore
     iqr = v75 - v25
     step = weight * iqr
     lowest, highest = v25 - step, v75 + step

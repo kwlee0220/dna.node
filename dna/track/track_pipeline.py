@@ -18,7 +18,7 @@ class TrackInfoDrawer(FrameUpdater):
         self.trail_collector = trail_collector
         self.draw = draw
     
-    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None: pass
+    def open(self, img_proc:ImageProcessor) -> None: pass
     def close(self) -> None: pass
 
     def set_control(self, key:int) -> int:
@@ -127,7 +127,7 @@ class TrackingPipeline(FrameProcessor):
             
         return tracking_pipeline
 
-    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None:
+    def open(self, img_proc:ImageProcessor) -> None:
         for processor in self._track_processors:
             processor.track_started(self.tracker)
 

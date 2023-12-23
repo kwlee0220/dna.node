@@ -24,7 +24,7 @@ class RedisNodeProcessorClient(EventQueue):
         self.request = {
             'id': self.app_id,
             'node': node_id,
-            'action': 'start',
+            'action': 'track',
             'channels': {
                 'node-tracks' : self.tracks_channel,
                 'controls' : self.controls_channel,

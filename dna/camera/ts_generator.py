@@ -16,7 +16,7 @@ class InitialTimestamp(Enum):
 class TimestampGenerator:
     def __init__(self, type:InitialTimestamp, fps:int, sync:bool,
                  *,
-                 init_ts:Optional[int]=None):
+                 init_ts:int=0):
         """TimeSynchronizer 객체를 생성한다.
 
         Args:
@@ -29,8 +29,6 @@ class TimestampGenerator:
         self.__fps = fps
         self.__sync = sync
         self.__init_ts = init_ts
-        self.__adjust_ts = None
-        self.__frame_interval = None
         self.__last_ts = 0
         
         now = utc_now_millis()
@@ -40,7 +38,7 @@ class TimestampGenerator:
             self.__init_ts = now
         # 매 frame마다 ts를 생성할 때 보정용으로 사용함.
         self.__adjust_ts = now - self.__init_ts
-        self.__frame_interval = 1000.0 / fps
+        self.__frame_interval = int(1000.0 / fps)
 
     @classmethod
     def parse(cls, init_ts_expr:str, fps:int, sync:bool) -> TimestampGenerator:
@@ -106,6 +104,6 @@ class TimestampGenerator:
         return self.__init_ts
 
     def __repr__(self):
-        init_ts_str = f", init_ts={self.init_ts}" if self.init_ts is not None else ''
-        intvl_ms_str = f", interval={self.interval_ms}ms" if self.interval_ms is not None else ''
-        return f'{self.type}{self.init_ts_str}{self.intvl_ms_str}'
+        init_ts_str = f", init_ts={self.__init_ts}" if self.__init_ts is not None else ''
+        intvl_ms_str = f", interval={self.__frame_interval}ms" if self.__frame_interval is not None else ''
+        return f'{self.type}{init_ts_str}{intvl_ms_str}'

@@ -8,12 +8,12 @@ import json
 
 import numpy as np
 
-from dna import Box, Point, ByteString, NodeId, TrackId, TrackletId
+from dna import Box, Point, NodeId, TrackId, TrackletId
 from dna.track import TrackState
 from dna.support import sql_utils
 from .types import KafkaEvent, Timestamped
 # from dna.node.zone.types import ZoneExpression
-from .proto.reid_feature_pb2 import NodeTrackProto, LocalizationProto
+from .proto.reid_feature_pb2 import NodeTrackProto, LocalizationProto   # type: ignore
 
 
 _WGS84_PRECISION = 7
@@ -34,12 +34,12 @@ def from_loc_bytes(binary_data:bytes) -> tuple[Point,float]:
     return Point((proto.location_x, proto.location_y)), proto.distance
 
 
-@dataclass(frozen=True, eq=True, order=False, repr=False, slots=True)   # slots=True
+@dataclass(frozen=True, eq=True, order=False, repr=False, slots=True)
 class NodeTrack:
     node_id: NodeId     # node id
     track_id: TrackId   # tracking object id
     state: TrackState   # tracking state
-    bbox: Box = field(hash=False)
+    bbox: Optional[Box] = field(hash=False)
     first_ts: int = field(hash=False)
     frame_index: int
     ts: int = field(hash=False)
@@ -76,29 +76,9 @@ class NodeTrack:
             return False
 
     @staticmethod
-    def from_row(row:tuple[str,str,TrackState,Box,Point,float,str,int,int]) -> NodeTrack:
-        from dna.node.zone import ZoneExpression
-        return NodeTrack(node_id=row[1],
-                            track_id=row[2],
-                            state=TrackState.from_abbr(row[3]),
-                            bbox=sql_utils.from_sql_box(row[4]),
-                            location=sql_utils.from_sql_point(row[5]),
-                            distance=row[6],
-                            zone_expr=ZoneExpression.parse_str(row[7]),
-                            frame_index=row[8],
-                            ts=row[9])
-
-    def to_row(self) -> tuple[str,str,str,str,str,float,str,int,int]:
-        return (self.node_id, self.track_id, self.state.abbr,
-                sql_utils.to_sql_box(self.bbox.to_rint()),
-                sql_utils.to_sql_point(self.location),
-                self.distance, str(self.zone_expr),
-                self.frame_index, self.ts)
-
-    @staticmethod
     def from_json(json_str:str) -> NodeTrack:
         from dna.node.zone import ZoneExpression
-        def json_to_box(tlbr_list:Optional[Iterable[float]]) -> Box:
+        def json_to_box(tlbr_list:Optional[Iterable[float]]) -> Optional[Box]:
             return Box(tlbr_list) if tlbr_list else None
 
         json_obj = json.loads(json_str)
@@ -144,11 +124,11 @@ class NodeTrack:
 
         return json.dumps(serialized, separators=(',', ':'))
 
-    def serialize(self) -> str:
+    def serialize(self) -> bytes:
         return self.to_json().encode('utf-8')
 
     @staticmethod
-    def deserialize(serialized:ByteString) -> NodeTrack:
+    def deserialize(serialized:bytes) -> NodeTrack:
         return NodeTrack.from_json(serialized.decode('utf-8'))
 
     def updated(self, **kwargs:object) -> NodeTrack:
@@ -162,6 +142,7 @@ class NodeTrack:
                 + self.bbox.tlbr.tolist() \
                 + [self.frame_index, self.ts]
         if self.location is not None:
+            assert self.distance is not None
             vlist += np.round(self.location.xy, _WGS84_PRECISION).tolist() + [round(self.distance, _DIST_PRECISION)]
         else:
             vlist += ['', '']
@@ -196,12 +177,13 @@ class NodeTrack:
         proto.node_id = self.node_id
         proto.track_id = self.track_id
         proto.state = self.state.abbr
-        if self.tlbr is not None:
+        if self.bbox is not None:
             proto.bbox_tlbr.extend(self.bbox.tlbr.tolist())
         proto.first_ts = self.first_ts
         proto.frame_index = self.frame_index
         proto.ts = self.ts
         if self.location is not None:
+            assert self.distance is not None
             proto.localization = to_loc_bytes(self.location, self.distance)
         if self.zone_expr is not None:
             proto.zone_expr = self.zone_expr

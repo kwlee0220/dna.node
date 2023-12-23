@@ -42,11 +42,10 @@ class DetectingProcessor(FrameProcessor):
 
         return DetectingProcessor(detector=detector, output=output, draw_detections=draw_detections)
 
-    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None:
+    def open(self, img_proc:ImageProcessor) -> None:
         if self.output:
             Path(self.output).parent.mkdir(exist_ok=True)
             self.out_fp = open(self.output, "w")
-        return self
 
     def close(self) -> None:
         if self.out_fp:

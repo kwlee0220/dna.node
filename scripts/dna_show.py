@@ -1,12 +1,15 @@
 from __future__ import annotations
 
+from typing import Any
 import sys
 from contextlib import closing
 import argparse
 from omegaconf import OmegaConf
+from omegaconf.dictconfig import DictConfig
 
 from dna import config, initialize_logger, camera
-from scripts.utils import add_image_processor_arguments, to_camera_options, to_image_processor_options
+from dna.camera import ImageProcessorOptions
+from scripts.utils import add_image_processor_arguments
 
 
 def define_args(parser):
@@ -21,12 +24,8 @@ def define_args(parser):
 def run(args):
     initialize_logger(args.logger)
     
-    conf = config.to_conf(args)
-    config.update(conf, 'sync', not conf.nosync)
-    config.update(conf, 'show', not conf.hide)
-
-    # Camera 설정에 필용한 옵션들을 수집하고, camera를 개방시킨다.
-    result = camera.process_images(**dict(conf))
+    options = ImageProcessorOptions(vars(args))
+    result = camera.process_images(options)
     print(result)
     
 def main():

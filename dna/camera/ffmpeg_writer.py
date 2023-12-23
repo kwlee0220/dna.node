@@ -1,35 +1,34 @@
 from __future__ import annotations
 from typing import Optional
 
+from enum import Enum
 from pathlib import Path
 from contextlib import suppress
 import logging
 import ffmpeg
 
-from dna import Image, Size2d
-from dna.camera import Frame, VideoWriter, ImageCapture
+from dna import Image, Size2di
+from dna.camera import Frame, VideoWriter, CRF
 from .image_processor import FrameReader, ImageProcessor
 
-
-CRF_VISUALLY_LOSSLESS = 17
-CRF_FFMPEG_DEFAULT = 23
-
+                        
 class FFMPEGWriter(VideoWriter):
     __slots__ = ( '__path', '__fps', '__image_size', 'process' )
     
-    def __init__(self, video_file:str, fps:int, size:Size2d,
+    def __init__(self, video_file:str, fps:int, size:Size2di,
                  *,
-                 crf:int=CRF_FFMPEG_DEFAULT) -> None:
+                 crf:CRF=CRF.FFMPEG) -> None:
         super().__init__()
         
-        self.__path = Path(video_file).resolve()
-        self.__path.parent.mkdir(exist_ok=True)
+        path = Path(video_file).resolve()
+        path.parent.mkdir(exist_ok=True)
+        self.__path = str(path)
         self.__fps = fps
         self.__image_size = size
         self.process = (
             ffmpeg.input('pipe:', format='rawvideo', pix_fmt='bgr24', s=f'{size.width}x{size.height}', r=fps)
                     # .output(video_file, f='mp4', vcodec='mpeg4')
-                    .output(str(video_file), f='mp4', vcodec='libx264', pix_fmt='yuv420p', crf=crf)
+                    .output(self.__path, f='mp4', vcodec='libx264', pix_fmt='yuv420p', crf=crf)
                     .overwrite_output()
                     .run_async(pipe_stdin=True)
         )
@@ -48,7 +47,7 @@ class FFMPEGWriter(VideoWriter):
         return self.process is not None
         
     @property
-    def path(self) -> Path:
+    def path(self) -> str:
         return self.__path
         
     @property
@@ -56,7 +55,7 @@ class FFMPEGWriter(VideoWriter):
         return self.__fps
         
     @property
-    def image_size(self) -> Size2d:
+    def image_size(self) -> Size2di:
         return self.__image_size
 
     def write(self, image:Image) -> None:
@@ -74,17 +73,19 @@ class FFMPEGWriteProcessor(FrameReader):
         self.__options.pop('logger', None)
         self.__writer = None
         
-    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None:
+    def open(self, img_proc:ImageProcessor) -> None:
         if self.logger and self.logger.isEnabledFor(logging.INFO):
             self.logger.info(f'opening video file: {self.path}')
-        self.__writer = FFMPEGWriter(self.path.resolve(), img_proc.capture.fps, img_proc.capture.size, **self.__options)
+        cap = img_proc.capture
+        self.__writer = FFMPEGWriter(cap.camera.path, cap.fps, cap.image_size, **self.__options)
 
     def close(self) -> None:
-        if self.logger and self.logger.isEnabledFor(logging.INFO):
-            self.logger.info(f'closing video file: {self.path}')
-        with suppress(Exception):
-            self.__writer.close()
-            self.__writer = None
+        if self.__writer is not None:
+            if self.logger and self.logger.isEnabledFor(logging.INFO):
+                self.logger.info(f'closing video file: {self.path}')
+            with suppress(Exception):
+                self.__writer.close()
+                self.__writer = None
 
     def read(self, frame:Frame) -> None:
         if self.__writer is None:

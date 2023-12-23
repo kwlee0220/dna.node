@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TypeAlias, NewType,  Iterable, Union, Callable
+from typing import TypeAlias, Optional,  Iterable, Union, Callable, Any
 import numbers
 from dataclasses import dataclass, field
 
@@ -15,9 +15,9 @@ class InvalidStateError(ValueError):
     def __init__(self, *args: object) -> None:
         super().__init__(*args)
 
-NodeId = NewType('NodeId', str)
-TrackId = NewType('TrackId', str)
-Image = NewType('Image', np.ndarray)
+NodeId:TypeAlias = str
+TrackId:TypeAlias = str
+Image:TypeAlias = np.ndarray
 ByteString:TypeAlias = bytes|bytearray|memoryview
 
 
@@ -36,9 +36,9 @@ class TrackletId:
 
     @staticmethod
     def from_json_object(json_obj:dict[str,object]) -> TrackletId:
-        return TrackletId(node_id=json_obj['node'], track_id=json_obj['track'])
+        return TrackletId(node_id=str(json_obj['node']), track_id=str(json_obj['track']))
 
-    def to_json_object(self) -> str:
+    def to_json_object(self) -> dict[str,str]:
         return {'node':self.node_id, 'track':self.track_id}
 
     def __repr__(self) -> str:
@@ -222,9 +222,8 @@ class Size2d:
         self.wh = np.array(wh)
 
     @staticmethod
-    def from_expr(expr:object) -> Size2d:
+    def from_expr(expr:Size2d|str|npt.ArrayLike) -> Size2d:
         """인자 값을 'Size2d' 객체로 형 변화시킨다.
-        - 인자가 None인 경우는 None을 반환한다.
         - 인자가 Size2d인 경우는 별도의 변환없이 인자를 복사하여 반환한다.
         - 인자가 문자열인 경우에는 '<width> x <height>' 형식으로 파싱하여 Size2d를 생성함.
         - 그렇지 않은 경우는 numpy.array() 함수를 통해 numpy array로 변환하고 이를 다시 Size2d로 생성함.
@@ -235,9 +234,7 @@ class Size2d:
         Returns:
             Size2d: 형 변환된 Size2d 객체.
         """
-        if expr is None:
-            return None
-        elif isinstance(expr, Size2d):
+        if isinstance(expr, Size2d):
             return Size2d(expr.wh)
         elif isinstance(expr, str):
             return Size2d.parse_string(expr)
@@ -326,13 +323,14 @@ class Size2d:
         """
         return self.wh[0] * self.wh[1]
 
-    def to_rint(self) -> Size2d:
+    def to_rint(self) -> Size2di:
         """본 Size2d 크기 값을 int형식으로 반올림한 값을 갖는 Size2d 객체를 반환한다.
 
         Returns:
             Size2d: int형식으로 반올림한 크기를 갖는 Size2d 객체.
         """
-        return Size2d(np.rint(self.wh).astype(int))
+        tup = tuple(self.wh)
+        return Size2di.from_expr((round(tup[0]), round(tup[1])))
     
     def __hash__(self):
         return hash(tuple(self))
@@ -407,6 +405,163 @@ class Size2d:
 INVALID_SIZE2D: Size2d = Size2d([-1, -1])
 
 
+@dataclass(frozen=True,slots=True)
+class Size2di:
+    width: int
+    height: int
+
+    @staticmethod
+    def from_expr(expr:Size2di|str|npt.ArrayLike) -> Size2di:
+        """인자 값을 'Size2d' 객체로 형 변화시킨다.
+        - 인자가 Size2d인 경우는 별도의 변환없이 인자를 복사하여 반환한다.
+        - 인자가 문자열인 경우에는 '<width> x <height>' 형식으로 파싱하여 Size2d를 생성함.
+        - 그렇지 않은 경우는 numpy.array() 함수를 통해 numpy array로 변환하고 이를 다시 Size2d로 생성함.
+
+        Args:
+            expr (object): 형 변환시킬 대상 객체.
+
+        Returns:
+            Size2d: 형 변환된 Size2d 객체.
+        """
+        if isinstance(expr, Size2di):
+            return Size2di(width=expr.width, height=expr.height)
+        elif isinstance(expr, str):
+            return Size2di.parse_string(expr)
+        elif isinstance(expr, Iterable):
+            return Size2di(width=int(expr[0]), height=int(expr[1]))
+        else:
+            raise ValueError(f"invalid Size2di expression: {expr}")
+
+    @staticmethod
+    def parse_string(expr:str) -> Size2di:
+        """'<width> x <height>' 형식으로 표기된 문자열을 파싱하여 Size2d 객체를 생성한다.
+
+        Args:
+            expr (str): '<width> x <height>' 형식의 문자열.
+
+        Raises:
+            ValueError: '<width> x <height>' 형식의 문자열이 아닌 경우.
+
+        Returns:
+            Size2d: Size2d 객체.
+        """
+        parts: list[int] = [int(p) for p in expr.split("x")]
+        if len(parts) == 2:
+            return Size2di.from_expr(parts)
+        raise ValueError(f"invalid Size2d string: {expr}")
+
+    def is_valid(self) -> bool:
+        """Size2d 객체의 유효성 여부를 반환한다.
+
+        Returns:
+            bool: 유효성 여부. 넓이와 높이가 모두 0보다 크거나 같은지 여부.
+        """
+        return self.width >= 0 and self.height >= 0
+    
+    @staticmethod
+    def from_image(img:np.ndarray) -> Size2d:
+        """주어진 OpenCV 이미지의 크기를 반환한다.
+
+        Args:
+            img (np.ndarray): OpenCV 이미지 객체.
+
+        Returns:
+            Size2d: 이미지 크기 (width, height)
+        """
+        h, w, _ = img.shape
+        return Size2d([w, h])
+    
+    def __iter__(self):
+        return self.tuple()
+    
+    def tuple(self) -> tuple[int,int]:
+        return (self.width, self.height)
+        
+    def __array__(self, dtype=None):
+        return np.array([self.width, self.height])
+
+    def aspect_ratio(self) -> float:
+        """본 Size2d의 aspect ratio (=w/h)를 반환한다.
+
+        Returns:
+            float: aspect ratio
+        """
+        return self.width / self.height
+
+    def area(self) -> int:
+        """본 Size2d에 해당하는 영역을 반환한다.
+
+        Returns:
+            float: 영역.
+        """
+        return self.width * self.height
+
+    def __add__(self, rhs) -> Size2di:
+        if isinstance(rhs, Iterable):
+            return Size2di(width=self.width+int(rhs[0]), height=self.height+int(rhs[1]))    # type: ignore
+        elif isinstance(rhs, int):
+            return Size2di(width=self.width+rhs, height=self.height+rhs)
+        else:
+            raise ValueError(f"incompatible for __add__: {rhs}")
+
+    def __sub__(self, rhs) -> Size2di:
+        if isinstance(rhs, Iterable):
+            return Size2di(width=self.width-int(rhs[0]), height=self.height-int(rhs[1]))    # type: ignore
+        elif isinstance(rhs, int):
+            return Size2di(width=self.width-rhs, height=self.height-rhs)
+        else:
+            raise ValueError(f"incompatible for __sub__: {rhs}")
+
+    def __mul__(self, rhs) -> Size2di:
+        if isinstance(rhs, Iterable):
+            return Size2d(width=self.width*int(rhs[0]), height=self.height*int(rhs[1]))    # type: ignore
+        elif isinstance(rhs, int):
+            return Size2di(width=self.width*rhs, height=self.height*rhs)
+        else:
+            raise ValueError(f"incompatible for __mul__: {rhs}")
+
+    def __truediv__(self, rhs) -> Size2d:
+        if isinstance(rhs, Iterable):
+            return Size2d((self.width/float(rhs[0]), self.height/float(rhs[1])))    # type: ignore
+        elif isinstance(rhs, float):
+            return Size2d((self.width/rhs, self.height/rhs))
+        else:
+            raise ValueError(f"incompatible for __truediv__: {rhs}")
+
+    def __eq__(self, other):
+        if isinstance(other, Size2di):
+            return self.width == other.width and self.height == other.height
+        else:
+            return False
+
+    def __gt__(self, other:Size2di):
+        if isinstance(other, Size2di):
+            return self.width > other.width and self.height > other.height
+        else:
+            raise ValueError(f'invalid Size2d object: {self}')
+
+    def __ge__(self, other:Size2di):
+        if isinstance(other, Size2di):
+            return self.width >= other.width and self.height >= other.height
+        else:
+            raise ValueError(f'invalid Size2d object: {self}')
+
+    def __lt__(self, other:Size2di):
+        if isinstance(other, Size2di):
+            return self.width < other.width and self.height < other.height
+        else:
+            raise ValueError(f'invalid Size2d object: {self}')
+
+    def __le__(self, other:Size2di):
+        if isinstance(other, Size2di):
+            return self.width <= other.width and self.height <= other.height
+        else:
+            raise ValueError(f'invalid Size2d object: {self}')
+    
+    def __repr__(self) -> str:
+        return f'{self.width}x{self.height}'
+
+
 class Box:
     """A box object in 2d plane.
 
@@ -416,7 +571,7 @@ class Box:
     """
     __slots__ = ('tlbr', )
 
-    def __init__(self, tlbr:npt.ArrayLike) -> None:
+    def __init__(self, tlbr:npt.ArrayLike|Iterable[float]) -> None:
         """두 개의 좌표 (x1,y2), (x2, y2) 로 구성된 Box 객체를 반환한다.
 
         Args:
@@ -500,7 +655,7 @@ class Box:
         return iter(tuple(self.tlbr))
         
     def __array__(self, dtype=None):
-        if not dtype or dtype == self.xy.dtype:
+        if not dtype or dtype == self.tlbr.dtype:
             return self.tlbr
         else:
             return self.tlbr.astype(dtype)
@@ -626,7 +781,7 @@ class Box:
         u = np.max(np.array([np.zeros(len(delta1)), delta1]), axis=0)
         v = np.max(np.array([np.zeros(len(delta2)), delta2]), axis=0)
         dist = np.linalg.norm(np.concatenate([u, v]))
-        return dist
+        return float(dist)
 
     def contains_point(self, pt:Point) -> bool:
         """Returns whether this box contains the given point or not.
@@ -703,7 +858,7 @@ class Box:
         x1, y1, x2, y2 = tuple(self.tlbr)
         return image[y1:y2, x1:x2]
     
-    def expand(self, margin:Union[numbers.Number,npt.ArrayLike]) -> Box:
+    def expand(self, margin:Union[float,npt.ArrayLike]) -> Box:
         """Expand this box with the amount of the given margin.
 
         Args:

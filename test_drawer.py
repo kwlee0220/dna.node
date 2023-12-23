@@ -4,10 +4,9 @@ import cv2
 import numpy as np
 from omegaconf import OmegaConf
 
-from dna import Box, Size2d, Point, color
+from dna import Box, Size2d, Point, BGR, color, camera
 from dna.support import plot_utils
 from dna.support.rectangle_drawer import RectangleDrawer
-from dna.camera import create_camera_from_conf
 from dna.support.polygon_drawer import PolygonDrawer
 from dna.zone import Zone
 
@@ -15,7 +14,7 @@ img = None
 
 SHIFT = 50
 
-def create_blank_image(size:Size2d, *, color:color=color.WHITE) -> np.ndarray:
+def create_blank_image(size:Size2d, *, clr:BGR=color.WHITE) -> np.ndarray:
     from dna.color import WHITE, BLACK
     blank_img = np.zeros([size.height, size.width, 3], dtype=np.uint8)
     if color == WHITE:
@@ -23,22 +22,20 @@ def create_blank_image(size:Size2d, *, color:color=color.WHITE) -> np.ndarray:
     elif color == BLACK:
         pass
     else:
-        blank_img[:,:,0].fill(color[0])
-        blank_img[:,:,1].fill(color[1])
-        blank_img[:,:,2].fill(color[2])
+        blank_img[:,:,0].fill(clr[0])
+        blank_img[:,:,1].fill(clr[1])
+        blank_img[:,:,2].fill(clr[2])
     
     return blank_img
 
-camera_conf = OmegaConf.create()
 # camera_conf.uri = "data/2022/etri_041.mp4"
-camera_conf.uri = "D:/Dropbox/Temp/20231109T1300-20231109T1330/videos/etri_05.mp4"
+uri = "D:/Dropbox/Temp/20231109T1300-20231109T1330/videos/etri_05.mp4"
 # camera_conf.uri = "output/output.mp4"
 # camera_conf.uri = "data/ai_city/ai_city_t3_c01.avi"
 # camera_conf.uri = "data/crossroads/crossroad_04.mp4"
 # camera_conf.uri = "data/shibuya_7_8.mp4"
-camera_conf.begin_frame = 25
-# camera_conf.begin_frame = 404
-camera = create_camera_from_conf(camera_conf)
+begin_frame = 25
+cam = camera.load_camera(uri, begin_frame=begin_frame)
 
 localizer = None
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
@@ -63,13 +60,13 @@ zones = [
     # [[155, 116], [196, 119], [262, 234], [217, 265], [155, 116]],
 ]
 
-with closing(camera.open()) as cap:
+with cam.open() as cap:
     src_img = cap().image
     # src_img = cv2.imread("output/ETRI_221011.png", cv2.IMREAD_COLOR)
     
     box = Box.from_image(src_img)
     
-    img = create_blank_image(box.expand(50).size(), color=color.BLACK)
+    img = create_blank_image(box.expand(50).size(), clr=color.BLACK)
     roi = box.translate([SHIFT, SHIFT])
     roi.update_roi(img, src_img)
 # img = cv2.imread("output/2023/etri_06_trajs.jpg", cv2.IMREAD_COLOR)

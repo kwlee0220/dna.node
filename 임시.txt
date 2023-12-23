@@ -108,3 +108,7 @@ start dna_node %CONF%/etri_04.yaml --camera %VIDEO%/etri_04.mp4 --init_ts runtim
 start dna_node %CONF%/etri_06r.yaml --camera %VIDEO%/etri_06.mp4 --init_ts runtime --sync
 
 dna_import_topic D:/Dropbox/Temp/20231110T0900-20231110T0930/global_tracks_motion.json --type global-track --topic global-tracks --progress
+
+"%PLAYBACK%/0/media.smp/start=%START_TS%&end=%END_TS%"
+dna_node %CONF%/etri_01r.yaml --camera "%PLAYBACK%/0/media.smp/start=%START_TS%&end=%END_TS%" --output %OUTPUT%/etri_01r_event.pickle --output_video %VIDEO%/etri_01r_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_show "%PLAYBACK%/0/media.smp/start=%START_TS%&end=%END_TS%"

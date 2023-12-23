@@ -123,71 +123,9 @@ dna_show_gtracks --show_supports --output_video %OUTPUT%/global_tracks_hybrid.mp
 
 REM =============================== [Import Global tracks into Kairos DB] ===============================
 jarvey build trajectories --exporter-jdbc-url kairos:129.254.82.161:5000:root:root:DNA
-
-
-
-
-
-
-
-dna_replay %OUTPUT%/etri_feature.pickle --progress --max_wait_ms 1000 --sync
-
-
-REM -----------------------------
-dna_merge_sort_events %OUTPUT%/etri_01_event.pickle %OUTPUT%/etri_02_event.pickle %OUTPUT%/etri_03_event.pickle ^
-%OUTPUT%/etri_04_event.pickle %OUTPUT%/etri_05_event.pickle %OUTPUT%/etri_06_event.pickle ^
-%OUTPUT%/etri_07_event.pickle --node_offsets "%NODE_OFFSETS%" --output %OUTPUT%/etri_motion.pickle
-
-dna_show_mc_locations %OUTPUT%/etri_motion.pickle
-dna_show_mc_locations %OUTPUT%/etri_02_event.pickle %OUTPUT%/etri_03_event.pickle --offsets 11,2,5,0,3,7,9
-
-
-REM =============================== [Associate running global tracks (Motion based)] ===============================
-kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete.json
-format_associations
-REM -----------------------------
-start dna_export --kafka_offset earliest --topic global-tracks-running --output %OUTPUT%/global_tracks_running_motion.json --stop_on_timeout --timeout_ms 2000
-start dna_show_gtracks --topic global-tracks-running --show_supports --output_video %OUTPUT%/global_tracks_running_motion.mp4 --stop_on_timeout --timeout_ms 2000
-start associate_tracklets --config %JARVEY_STREAMS_HOME%/mcmot_configs_m.yaml --log4j2 %JARVEY_STREAMS_HOME%/log4j2.xml --cleanup
-dna_replay %OUTPUT%/etri_motion.pickle --progress --max_wait_ms 1000 --sync
-
-
-
-REM =============================== [Generate final global tracks (Motion based)] ===============================
-kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete-global-tracks.json
-generate_final_global_tracks --overlap-area %JARVEY_STREAMS_HOME%/overlap_areas_m.yaml --auto-offset-reset earliest
-
-start dna_export --kafka_offset earliest --topic global-tracks --output %OUTPUT%/global_tracks_motion.json --stop_on_timeout --timeout_ms 2000
-dna_show_gtracks --topic global-tracks --show_supports --output_video %OUTPUT%/global_tracks_motion.mp4 --stop_on_timeout --timeout_ms 2000
 dna_smooth_trajs --topic global-tracks --stop_on_timeout --timeout_ms 2000 --output %OUTPUT%/smooth.json
 
 
 
-
-REM =============================== [Associate running global tracks (Motion based)] ===============================
-kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete.json
-jarvey format node_tracks_index
-jarvey format track_features_index
-jarvey format associations
-REM -----------------------------
-start jarvey build node_tracks_index
-start jarvey build track_features_index
-start jarvey build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_m.yaml
-start jarvey build global_tracks
-start dna_show_gtracks --topic global-tracks --show_supports --output_video %OUTPUT%/global_tracks_motion.mp4 --stop_on_timeout --initial_timeout_ms 30000
-rem start jarvey build trajectories --exporter-jdbc-url kairos:129.254.82.161:5000:root:root:DNA 
-
-start dna_export --kafka_offset earliest --topic global-tracks --output %OUTPUT%/global_tracks_motion.json --stop_on_timeout --initial_timeout_ms 30000
-
-dna_replay %OUTPUT%/etri_motion.pickle --progress --max_wait_ms 1000
-jarvey build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_m.yaml --kafka_offset earliest --stop_on_timeout
-jarvey build global_tracks --kafka_offset earliest --cleanup --stop_on_timeout
-dna_show_gtracks --topic global-tracks --show_supports --output_video %OUTPUT%/global_tracks_motion.mp4 --stop_on_timeout --kafka_offset earliest
-dna_export --kafka_offset earliest --topic global-tracks --output %OUTPUT%/global_tracks_motion.json --stop_on_timeout
-
-
-
-REM =============================== [Import Global tracks into Kairos DB] ===============================
-kafka-delete-records --bootstrap-server localhost:9092 --offset-json-file data/delete.json
-
+dna_replay %OUTPUT%/etri_feature.pickle --progress --max_wait_ms 1000 --sync
 

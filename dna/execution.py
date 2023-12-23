@@ -1,8 +1,9 @@
+from __future__ import annotations
 
-from datetime import time, timedelta
 from typing import Optional, Any
 from abc import ABCMeta, abstractmethod
-
+import time
+from datetime import timedelta
 from enum import Enum
 from logging import Logger
 
@@ -89,7 +90,7 @@ class NoOpExecutionContext(ExecutionContext):
 
 
 class LoggingExecutionContext(ExecutionContext):
-    def __init__(self, logger:Logger=None) -> None:
+    def __init__(self, logger:Optional[Logger]=None) -> None:
         super().__init__()
         self.logger = logger
 
@@ -130,7 +131,7 @@ class ExecutionFactory(metaclass=ABCMeta):
 
 
 class CancellationError(Exception):
-    def __init__(self, message:str) -> None:
+    def __init__(self, message:Optional[str]) -> None:
         self.message = message
         super().__init__(message)
 
@@ -232,7 +233,7 @@ class AbstractExecution(Execution):
 
 
 class InvocationError(Exception):
-    def __init__(self, message:str) -> None:
+    def __init__(self, message:Optional[str]) -> None:
         self.message = message
         super().__init__(message)
 
@@ -249,10 +250,10 @@ class AsyncExecution(Execution):
         self.cond = threading.Condition(self.lock)
         self.state = ExecutionState.NOT_STARTED
         self.result = None
-        self.message = None
+        self.message:Optional[str] = None
 
     def is_started(self) -> bool:
-        with self.lock: return self.state >= ExecutionState.RUNNING
+        with self.lock: return self.state.value >= ExecutionState.RUNNING.value
 
     def is_running(self) -> bool:
         with self.lock: return self.state == ExecutionState.RUNNING
@@ -271,7 +272,7 @@ class AsyncExecution(Execution):
         with self.lock:
             while True:
                 timeout = due - time.time()
-                if self.cond.wait_for(lambda: self.state >= ExecutionState.STOPPED, timeout):
+                if self.cond.wait_for(lambda: self.state.value >= ExecutionState.STOPPED.value, timeout):
                     return self.state
                 else:
                     raise TimeoutError(f"timeout={timedelta(seconds=timeout)}")
@@ -281,7 +282,7 @@ class AsyncExecution(Execution):
         with self.lock:
             while True:
                 timeout = due - time.time()
-                if self.cond.wait_for(lambda: self.state >= ExecutionState.STOPPED, timeout):
+                if self.cond.wait_for(lambda: self.state.value >= ExecutionState.STOPPED.value, timeout):
                     if self.state == ExecutionState.COMPLETED:
                         return self.result
                     elif self.state == ExecutionState.STOPPED:

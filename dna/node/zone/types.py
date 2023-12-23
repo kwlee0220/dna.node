@@ -14,7 +14,7 @@ class ZoneRelation(Enum):
     Deleted = 5
     
     @staticmethod
-    def parseRelationStr(rel_str:str) -> tuple[ZoneRelation, str]:
+    def parseRelationStr(rel_str:str) -> tuple[ZoneRelation, Optional[str]]:
         def parseZoneId(expr:str) -> str:
             return expr[2:-1]
             
@@ -30,6 +30,8 @@ class ZoneRelation(Enum):
             return ZoneRelation.Through, parseZoneId(rel_str)
         elif rel_str[0] == 'D':
             return ZoneRelation.Deleted, parseZoneId(rel_str)
+        else:
+            raise AssertionError
 
 
 @dataclass(frozen=True, eq=True, repr=False)
@@ -61,7 +63,7 @@ class ZoneExpression:
         return self.relation == ZoneRelation.Deleted
     
     @classmethod
-    def parse_str(cls, expr_str:str) -> ZoneExpression:
+    def parse_str(cls, expr_str:str) -> Optional[ZoneExpression]:
         if expr_str is None:
             return None
         

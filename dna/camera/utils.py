@@ -24,7 +24,7 @@ class SyncableImageCapture(ImageCapture, ImageGrabber):
         ts = self.__ts_gen.generate(self.__frame_index)
         self.__frame_index += 1
 
-        return Frame(image=Image(image), index=self.__frame_index, ts=ts)
+        return Frame(image=image, index=self.__frame_index, ts=ts)
 
     @abstractmethod
     def grab_image(self) -> Optional[Image]:

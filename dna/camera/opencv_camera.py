@@ -1,21 +1,21 @@
 from __future__ import annotations
 
-from typing import NewType, Iterator, Optional
+from typing import NewType, Iterator, Optional, Any
 
 import cv2
 
-from dna import Size2d
+from dna import Size2di
 from dna.utils import try_supply
-from .types import Camera, Frame, ImageCapture, Image
+from .types import Camera, Frame, ImageCapture, Image, CameraOptions
 from .utils import SyncableImageCapture
 
 
-def _get_image_size(cap:cv2.VideoCapture) -> Size2d:
+def _get_image_size(cap:cv2.VideoCapture) -> Size2di:
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    return Size2d([width, height])
+    return Size2di(width=width, height=height)
 
-def _set_image_size(cap:cv2.VideoCapture, size:Size2d) -> None:
+def _set_image_size(cap:cv2.VideoCapture, size:Size2di) -> None:
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, size.width)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, size.height)
 
@@ -35,29 +35,30 @@ def _set_frame_index(cap:cv2.VideoCapture, index:int) -> None:
 class OpenCvCamera(Camera):
     __slot__ = ( '__uri' '__image_size', '__fps', '__sync', '__init_ts_expr')
     
-    def __init__(self, uri:str, **options:object):
+    def __init__(self, uri:str, options:CameraOptions):
         super().__init__()
 
         self.__uri = uri
-        self.__image_size = options.get('image_size')
-        self.__fps = options.get('fps')
-        self.__sync = options.get('sync')
-        self.__init_ts_expr = options.get('init_ts', 'open')
+        self.__image_size:Optional[Size2di] = options.get('image_size')
+        self.__fps:Optional[int] = options.get('fps')
+        self.__sync:bool = options.get('sync', True)
+        self.__init_ts_expr:str = options.get('init_ts', 'open')
         
     def open(self) -> OpenCvImageCapture:
-        return OpenCvImageCapture(self, camera=self, capture=cv2.VideoCapture(self.uri))
+        return OpenCvImageCapture(self, capture=cv2.VideoCapture(self.uri))
         
     @property
     def uri(self) -> str:
         return self.__uri
         
     @property
-    def image_size(self) -> str:
+    def image_size(self) -> Size2di:
         if self.__image_size is None:
             cap = cv2.VideoCapture(self.uri)
             self.__image_size = _get_image_size(cap)
             self.__fps = _get_fps(cap)
             cap.release()
+        assert isinstance(self.__image_size, Size2di)
         return self.__image_size
         
     @property
@@ -67,6 +68,7 @@ class OpenCvCamera(Camera):
             self.__image_size = _get_image_size(cap)
             self.__fps = _get_fps(cap)
             cap.release()
+        assert isinstance(self.__fps, int)
         return self.__fps
         
     @property
@@ -88,7 +90,7 @@ class OpenCvImageCapture(SyncableImageCapture):
             raise ValueError(f'cv2.VideoCapture is invalid')
         
         self.__camera = camera
-        self.__capture = capture            # None if closed
+        self.__capture:Optional[cv2.VideoCapture] = capture            # None if closed
         self.__image_size = _get_image_size(capture)
 
     def close(self) -> None:
@@ -108,10 +110,11 @@ class OpenCvImageCapture(SyncableImageCapture):
     
     @property
     def video_capture(self) -> cv2.VideoCapture:
+        assert self.__capture is not None
         return self.__capture
 
     @property
-    def image_size(self) -> Size2d:
+    def image_size(self) -> Size2di:
         return self.__image_size
 
     @property
@@ -131,11 +134,11 @@ class OpenCvImageCapture(SyncableImageCapture):
 class VideoFile(OpenCvCamera):
     __slot__ = ( '__begin_frame', '__end_frame' )
     
-    def __init__(self, uri:str, **options:object):
-        super().__init__(uri, **options)
+    def __init__(self, uri:str, options:CameraOptions):
+        super().__init__(uri, options)
         
-        self.__begin_frame = options.get('begin_frame', 1)
-        self.__end_frame = options.get('end_frame')
+        self.__begin_frame:int = options.get('begin_frame', 1)
+        self.__end_frame:Optional[int] = options.get('end_frame')
         
     def open(self) -> VideoFileCapture:
         capture = cv2.VideoCapture(self.uri)
@@ -148,26 +151,27 @@ class VideoFile(OpenCvCamera):
         return self.__begin_frame
         
     @property
-    def end_frame(self) -> int:
+    def end_frame(self) -> Optional[int]:
         return self.__end_frame
     
 
 class VideoFileCapture(OpenCvImageCapture):
-    def __init__(self, camera:VideoFile, capture:cv2.VideoCapture) -> None:
-        super().__init__(camera, capture, init_frame_index=camera.begin_frame)
+    def __init__(self, video_file:VideoFile, capture:cv2.VideoCapture) -> None:
+        super().__init__(video_file, capture, init_frame_index=video_file.begin_frame)
         
-        if camera.begin_frame <= 0 and camera.begin_frame > self.total_frame_count:
-            raise ValueError(f'index({camera.begin_frame}) should be between 1 and {self.total_frame_count}')
-        
-        if camera.begin_frame > 0:
-            _set_frame_index(capture, camera.begin_frame-1)
+        if video_file.begin_frame <= 0 and video_file.begin_frame > self.total_frame_count:
+            raise ValueError(f'index({video_file.begin_frame}) should be between 1 and {self.total_frame_count}')
+        if video_file.begin_frame > 0:
+            _set_frame_index(capture, video_file.begin_frame-1)
+            
+        self.__end_frame = video_file.end_frame
             
     def __iter__(self) -> VideoFileCapture:
         return self
             
     def __next__(self) -> Frame:
         # 지정된 마지막 프레임 번호보다 큰 경우는 image capture를 종료시킨다.
-        if self.camera.end_frame is not None and (self.frame_index+1) >= self.camera.end_frame:
+        if self.__end_frame is not None and (self.frame_index+1) >= self.__end_frame:
             raise StopIteration()
         return super().__next__()
 

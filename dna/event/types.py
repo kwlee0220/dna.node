@@ -90,10 +90,10 @@ class SilentFrame:
     ts: int = field(default_factory=lambda: int(round(time.time() * 1000)))
 
 
-class TrackEvent(Protocol):
-    int:str
-    location: Point
-    ts:int
+# class TrackEvent(Protocol):
+#     int:str
+#     location: Point
+#     ts:int
     
 
 @runtime_checkable

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 
 BGR = namedtuple('BGR', 'blue green red')

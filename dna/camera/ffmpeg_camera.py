@@ -20,7 +20,7 @@ def eval_ratio(ratio_str:str) -> float:
 class FFMPEGCamera(Camera):
     __slots__ = '__uri', 'cap_info', '__image_size', '__fps', '__sync', '__pipeline', '__init_ts_expr'
     
-    def __init__(self, uri:str, **options:object):
+    def __init__(self, uri:str, **options:Any):
         super().__init__()
 
         self.__uri = uri

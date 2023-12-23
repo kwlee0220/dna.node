@@ -126,7 +126,7 @@ class PublishReIDFeatures(FrameReader,EventProcessor):
             repr.pop(0)
         return True, min_dist
               
-    def open(self, img_proc:ImageProcessor, capture:ImageCapture) -> None: pass
+    def open(self, img_proc:ImageProcessor) -> None: pass
     def close(self) -> None: pass
 
     def read(self, frame:Frame) -> None:
