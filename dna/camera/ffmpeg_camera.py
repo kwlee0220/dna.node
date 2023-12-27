@@ -26,9 +26,9 @@ class FFMPEGCamera(Camera):
         self.__uri = uri
         probe = ffmpeg.probe(uri)
         _, self.cap_info = iterables.find_first(probe['streams'], lambda s: s['codec_name'] == 'h264')
-        self.__image_size = Size2d((self.cap_info['width'], self.cap_info['height']))
-        self.__fps = int(eval_ratio(self.cap_info['r_frame_rate']))
-        self.__sync = options.get('sync')
+        self.__image_size = Size2d(self.cap_info['width'], self.cap_info['height')) # type: ignore
+        self.__fps = int(eval_ratio(self.cap_info['r_frame_rate'])) # type: ignore
+        self.__sync = options.get('sync', False)
         self.__pipeline = (
             ffmpeg.input(self.__uri, rtsp_transport = 'tcp')
                     .output('pipe:', format='rawvideo', pix_fmt='bgr24')
@@ -110,4 +110,4 @@ class FFMPEGCameraCapture(SyncableImageCapture):
             return None
         
         in_frame = np.frombuffer(image_bytes, np.uint8).reshape(self.__shape)
-        return cv2.resize(in_frame, tuple(self.camera.image_size))
+        return cv2.resize(in_frame, self.image_size)

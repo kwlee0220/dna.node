@@ -10,8 +10,8 @@ import cv2
 import torch
 import torch.backends.cudnn as cudnn
 
-from dna import Box, Image
-from dna.camera import Frame
+from dna import Box
+from dna.camera import Image, Frame
 from dna.utils import parse_query
 from dna.detect import ObjectDetector, Detection
 

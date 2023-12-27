@@ -10,7 +10,7 @@ from pathlib import Path
 import logging
 
 from dna import config
-from dna.camera import Frame, ImageProcessor, FrameProcessor, create_camera_from_conf
+from dna.camera import Frame, ImageProcessor, FrameProcessor
 from .pika_execution_context import PikaExecutionContext
 
 LOGGER = logging.getLogger('dna.node.pika')

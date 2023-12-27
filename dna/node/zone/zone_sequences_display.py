@@ -19,7 +19,7 @@ class ZoneSequenceDisplay(EventListener, FrameUpdater):
         self.track_locations:dict[str,Box] = dict()
         self.motion_tracks:set[int] = set()
 
-    def close(self) -> None:
+    def on_completed(self) -> None:
         for key in self.sequence_count.keys():
             self.sequence_count[key] = 0
         

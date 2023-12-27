@@ -5,10 +5,10 @@ from typing import Any
 import json
 
 from dna import Point
-from .types import Timestamped, KafkaEvent, JsonEvent
+from .types import JsonEvent
 
 
-class JsonEventImpl:
+class JsonEventImpl(JsonEvent):
     __slots__ = ('json_obj')
     
     def __init__(self, json_obj:dict[str,Any]) -> None:

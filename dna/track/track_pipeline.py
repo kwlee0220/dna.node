@@ -4,8 +4,8 @@ from typing import Optional
 from omegaconf import OmegaConf
 import numpy as np
 
-from dna import color, BGR, Image
-from dna.camera import Frame, ImageCapture, ImageProcessor, FrameProcessor, FrameUpdater
+from dna import color, BGR
+from dna.camera import Image, Frame, ImageProcessor, FrameProcessor, FrameUpdater
 from .types import ObjectTrack, ObjectTracker, TrackProcessor
 from .track_processors import TrailCollector, TrackCsvWriter
 

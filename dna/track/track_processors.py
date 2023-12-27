@@ -1,13 +1,13 @@
 from __future__ import annotations
 
-from typing import Iterator, Optional
+from typing import Iterator, Optional, IO
 from collections import defaultdict, abc
 from pathlib import Path
 
 import numpy as np
 
-from dna import color, Point, Image, Box
-from dna.camera import Frame
+from dna import color, Point, Box
+from dna.camera import Image, Frame
 from .track_state import TrackState
 from dna.support import plot_utils, iterables
 from .types import ObjectTrack, ObjectTracker, TrackProcessor
@@ -18,10 +18,9 @@ class TrackCsvWriter(TrackProcessor):
         super().__init__()
 
         self.track_file = track_file
-        self.out_handle = None
+        self.out_handle:Optional[IO] = None
 
     def track_started(self, tracker:ObjectTracker) -> None:
-        
         super().track_started(tracker)
 
         parent = Path(self.track_file).parent
@@ -37,6 +36,7 @@ class TrackCsvWriter(TrackProcessor):
         super().track_stopped(tracker)
 
     def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:list[ObjectTrack]) -> None:
+        assert self.out_handle
         for track in tracks:
             self.out_handle.write(track.to_csv() + '\n')
         if iterables.exists(tracks, lambda t: t.is_deleted()):

@@ -9,8 +9,8 @@ import numpy.typing as npt
 from numpy.linalg import det
 import cv2
 
-from dna import Box, color, Image, Point, sub_logger
-from dna.camera import Frame
+from dna import Box, color, Point, sub_logger
+from dna.camera import Image, Frame
 from dna.detect import Detection
 from dna.support import plot_utils
 from dna.track import utils
@@ -23,7 +23,7 @@ from .matcher.cost_matrices import build_dist_cost, build_iou_cost, \
 from .kalman_filter import KalmanFilter
 from .dna_track_params import DNATrackParams
 from .dna_track import DNATrack
-from dna.event.node_track import NodeTrack
+from dna.node.node_track import NodeTrack
 
 _EMPTY_FEATURE = np.zeros(1024)
 

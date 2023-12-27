@@ -5,31 +5,28 @@ import logging
 from dataclasses import replace
 
 import shapely.geometry as geometry
-from omegaconf.omegaconf import OmegaConf
+from omegaconf.dictconfig import DictConfig
 import numpy as np
 
 from dna import Size2d
 from dna.zone import Zone
-from dna.event import EventProcessor, NodeTrack
+from dna.event import EventNodeImpl
+from ..node_track import NodeTrack
 from .types import ZoneExpression, ZoneRelation, UNASSIGNED
 from .events import LineTrack
 
 
-class ZoneEventGenerator(EventProcessor):
-    def __init__(self, named_zones:OmegaConf,
-                 *,
-                 image_size:Size2d=None,
-                 logger:Optional[logging.Logger]=None) -> None:
+class ZoneEventGenerator(EventNodeImpl):
+    def __init__(self, named_zones:DictConfig, *, logger:Optional[logging.Logger]=None) -> None:
         super().__init__()
         self.zones = {str(zid):Zone.from_coords(zone_expr, as_line_string=True) for zid, zone_expr in named_zones.items()}
-        self.image_size:Size2d = image_size
         self.logger = logger
 
     def handle_event(self, ev:object) -> None:
         if isinstance(ev, LineTrack):
             self.handle_line_track(ev)
         else:
-            self._publish_event(ev)
+            self.publish_event(ev)
         
     def handle_line_track(self, line_track:LineTrack) -> None:
         zone_events:list[NodeTrack] = []
@@ -47,17 +44,14 @@ class ZoneEventGenerator(EventProcessor):
                     rel = self.get_relation(zone, line_track.line)
                     track_ev = replace(line_track.source, zone_expr=ZoneExpression(relation=rel, zone_id=zid))
                     zone_events.append(track_ev)
-        
-        if self.image_size:
-            self.draw_line_track(line_track)
 
         # 특정 zone과 교집합이 없는 경우는 UNASSIGNED 이벤트를 발송함
         if len(zone_events) == 0:
             track_ev = replace(line_track.source, zone_expr=UNASSIGNED)
-            self._publish_event(track_ev)
+            self.publish_event(track_ev)
         elif len(zone_events) == 1:
             # 가장 흔한 케이스로 1개의 zone과 연관된 경우는 바로 해당 event를 발송
-            self._publish_event(zone_events[0])
+            self.publish_event(zone_events[0])
         else:
             # 한 line에 여러 zone event가 발생 가능하기 때문에 이 경우 zone event 발생 순서를 조정함.
             #
@@ -68,12 +62,12 @@ class ZoneEventGenerator(EventProcessor):
                 left_event = zone_events.pop(idx)
                 if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'{left_event}')
-                self._publish_event(left_event)
+                self.publish_event(left_event)
 
             from dna.support.iterables import partition
             enter_events, through_events = partition(zone_events, lambda ev: ev.zone_expr.is_entered())
             if len(through_events) == 1:
-                self._publish_event(through_events[0])
+                self.publish_event(through_events[0])
             elif len(through_events) > 1:
                 def distance_to_cross(line, zone_id) -> geometry.Point:
                     overlap = self.zones[zone_id].intersection(line_track.line)
@@ -84,13 +78,13 @@ class ZoneEventGenerator(EventProcessor):
                 zone_dists = [(idx, distance_to_cross(line_track.line, thru_ev.zone_expr.zone_id)) for idx, thru_ev in enumerate(through_events)]
                 zone_dists.sort(key=lambda zd: zd[1])
                 for idx, dist in zone_dists:
-                    self._publish_event(through_events[idx])
+                    self.publish_event(through_events[idx])
 
             # 마지막으로 enter event가 존재하는가 확인하여 이들을 발송함.
             for enter_ev in enter_events:
                 if self.logger and self.logger.isEnabledFor(logging.DEBUG):
                     self.logger.debug(f'{enter_ev}')
-                self._publish_event(enter_ev)
+                self.publish_event(enter_ev)
         
     def get_relation(self, zone:Zone, line:geometry.LineString) -> ZoneRelation:
         start_cond = zone.covers_point(line.coords[0])
@@ -103,21 +97,6 @@ class ZoneEventGenerator(EventProcessor):
             return ZoneRelation.Left
         else:
             return ZoneRelation.Through
-            
-    def draw_line_track(self, line_track:LineTrack) -> None:
-        import cv2
-        from dna import Point, color
-        from dna.support import plot_utils
-        
-        convas = np.zeros((self.image_size.height, self.image_size.width, 3), np.uint8)
-        for zone in self.zones.values():
-            convas = zone.draw(convas, color.WHITE, 2)
-        begin = Point(line_track.begin_point)
-        end = Point(line_track.end_point)
-        convas = plot_utils.draw_line(convas, begin, end, color=color.RED, line_thickness=2)    
-            
-        cv2.imshow('zone-lines', convas)
-        cv2.waitKey(1)
         
     def __repr__(self) -> str:
         return f"GenerateZoneEvents[nzones={len(self.zones)}]"

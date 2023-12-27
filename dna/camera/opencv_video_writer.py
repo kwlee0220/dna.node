@@ -8,8 +8,8 @@ from pathlib import Path
 
 import cv2
 
-from dna import Image, Size2di
-from dna.camera import Frame, ImageCapture, VideoWriter
+from ..size2di import Size2di
+from .types import Frame, VideoWriter, Image
 from .image_processor import FrameReader, ImageProcessor
 
 
@@ -38,10 +38,10 @@ class OpenCvVideoWriter(VideoWriter):
         self.__fps = fps
         self.__image_size = image_size
         path.parent.mkdir(exist_ok=True)
-        self.__video_writer = cv2.VideoWriter(self.__path, self.fourcc, self.__fps, self.__image_size.tuple())
+        self.__video_writer = cv2.VideoWriter(self.__path, self.fourcc, self.__fps, self.__image_size)
         
     def close(self) -> None:
-        if self.is_open():
+        if self.__video_writer:
             self.__video_writer.release()
             self.__video_writer = None
         
@@ -61,9 +61,8 @@ class OpenCvVideoWriter(VideoWriter):
         return self.__image_size
 
     def write(self, image:Image) -> None:
-        assert self.is_open(), "not opened."
+        assert self.__video_writer, "not opened."
         self.__video_writer.write(image)
-        
 
 
 class OpenCvWriteProcessor(FrameReader):
@@ -86,8 +85,9 @@ class OpenCvWriteProcessor(FrameReader):
         if self.logger and self.logger.isEnabledFor(logging.INFO):
             self.logger.info(f'closing video file: {self.path}')
         with suppress(Exception):
-            self.__writer.close()
-            self.__writer = None
+            if self.__writer:
+                self.__writer.close()
+                self.__writer = None
 
     def read(self, frame:Frame) -> None:
         if self.__writer is None:

@@ -1,11 +1,11 @@
 from __future__ import annotations
 
 import os
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, Callable
 from pathlib import Path
 
 from argparse import Namespace
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, DictKeyType
 from omegaconf.dictconfig import DictConfig
 
 _NOT_EXISTS:DictConfig = OmegaConf.create(None)
@@ -84,6 +84,9 @@ def update_values(conf:DictConfig, values:dict[str,Any]|Namespace|DictConfig, *k
 
 def filter(conf:DictConfig, *keys:str) -> DictConfig:
     return OmegaConf.masked_copy(conf, list(keys))
+
+def filter_if(conf:DictConfig, predicate:Callable[[DictKeyType,Any],bool]):
+    return OmegaConf.create({k:v for k, v in conf.items() if predicate(k, v)})
 
 def remove(conf:DictConfig, key:str) -> DictConfig:
     parent, s1, leaf = get_parent(conf, key)

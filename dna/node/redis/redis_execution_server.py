@@ -4,6 +4,7 @@ from typing import Optional, Any
 import logging
 
 import dataclasses
+from collections import ChainMap
 from argparse import Namespace
 import threading
 import redis
@@ -13,7 +14,7 @@ from omegaconf.dictconfig import DictConfig
 from pathlib import Path
 
 from dna import config, utils, camera
-from dna.camera import FrameProcessor, ImageProcessor
+from dna.camera import FrameProcessor, ImageProcessor, ImageProcessorOptions
 from dna.node.node_processor import NodeTrackEventPipeline
 from dna.execution import ExecutionContext, AbstractExecution, ExecutionState
 from dna.support import redis as dna_redis
@@ -151,23 +152,25 @@ class RedisExecutionServer:
                                   f"conf_root={self.args.conf_root}, node={request.node}, path='{path}'")
                 raise e
         else:
-            conf = request
-                
-        # args에 포함된 ImageProcess 설정 정보를 추가한다.
-        config.update_values(conf, self.args, 'show', 'output_video', 'progress', 'title')
+            conf = request 
+            
+        # request에 포함한 설정을 사용할 준비를 한다.
+        req_dict = dict(config.get(request, 'camera'))
+        
+        # NodeServer의 argument에 포함된 설정을 사용할 준비를 한다.
+        args_dict = vars(self.args)
         
         # configuration에 포함된 kafka event publishing관련 설정을 제거한다.
         conf = config.remove(conf, 'publishing.plugins.kafka_brokers')
         conf = config.remove(conf, 'publishing.plugins.publish_tracks')
         conf = config.remove(conf, 'publishing.plugins.publish_features')
+            
+        # conf에 포함한 설정을 사용할 준비를 한다.
+        conf1_dict = dict(config.filter_if(conf, lambda k, v: k != 'id' and not isinstance(v, DictConfig)))
+        conf_camera_dict = dict(config.get(conf, key='camera'))
         
-        config.update_values(conf, request, "show")
-        
-        config.update(conf, "camera", request.camera)
-        cam = camera.load_camera(**dict(conf.camera))
-        
-        options = config.filter(conf, 'show', 'output_video', 'progress', 'title')
-        img_proc = camera.create_image_processor(camera=cam, context=context, **options)
+        options = ImageProcessorOptions(dict(ChainMap(req_dict, args_dict, conf_camera_dict, conf1_dict)))
+        img_proc = camera.create_image_processor(options)
         
         _, node_track_pipeline = build_node_processor(img_proc, conf)
         
@@ -176,7 +179,7 @@ class RedisExecutionServer:
         
         report_interval = config.get(request, 'report_frame_interval', default=-1)
         if report_interval > 0:
-            img_proc.add_frame_processor(RedisExecutionProgressReporter(context, report_interval))
+            img_proc.set_frame_processor(RedisExecutionProgressReporter(context, report_interval))
 
         return img_proc, node_track_pipeline
             

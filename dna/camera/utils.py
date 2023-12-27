@@ -2,12 +2,11 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Optional
 
-from dna import Image
-from .types import Frame, ImageCapture, ImageGrabber
+from .types import Image, Frame, ImageCapture
 from .ts_generator import TimestampGenerator
 
 
-class SyncableImageCapture(ImageCapture, ImageGrabber):
+class SyncableImageCapture(ImageCapture):
     __slots__ =  ( '__frame_index', '__fps', '__ts_gen', )
 
     def __init__(self, fps:int, sync:bool, init_ts_expr:str, init_frame_index:int) -> None:

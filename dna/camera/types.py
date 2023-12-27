@@ -1,15 +1,17 @@
 from __future__ import annotations
 
-from typing import TypeAlias, Protocol, Optional, runtime_checkable, Any
+from typing import TypeAlias, Any
 from abc import ABC, abstractmethod
+from collections import UserDict
 from dataclasses import dataclass, field
 
 import numpy as np
 
-from dna import Size2di
+from ..size2di import Size2di
 
+from cv2.typing import MatLike
+Image:TypeAlias = MatLike
 
-Image:TypeAlias = np.ndarray
 
 @dataclass(frozen=True, eq=True, slots=True)
 class Frame:
@@ -18,16 +20,47 @@ class Frame:
     """
     image: Image = field(repr=False, compare=False, hash=False)
     index: int
-    ts: float
+    ts: int
     
     def __repr__(self) -> str:
         h, w, _ = self.image.shape
         return f'{self.__class__.__name__}[image={w}x{h}, index={self.index}, ts={self.ts}]'
+    
 
-  
-@runtime_checkable
-class ImageGrabber(Protocol):
-    def grab_image(self) -> Optional[Image]: ...
+class CameraOptions(UserDict):
+    KEYS = {'camera_uri', 'fps', 'sync', 'init_ts', 'begin_frame', 'end_frame'}
+    
+    def __init__(self, **options):
+        super().__init__()
+        
+        for key, value in options.items():
+            self.__setitem__(key, value)
+            
+    def __getitem__(self, key:str) -> Any:
+        return self.data[key]
+                
+    def __setitem__(self, key:str, item:Any) -> None:
+        match key:
+            case 'camera':
+                assert isinstance(item, str)
+                self.data['camera_uri'] = item
+            case 'fps':
+                assert isinstance(item, int)
+                self.data['fps'] = item
+            case 'sync':
+                assert isinstance(item, bool)
+                self.data['sync'] = item
+            case 'init_ts':
+                assert isinstance(item, str|int)
+                self.data['init_ts'] = item
+            case 'begin_frame':
+                assert isinstance(item, int)
+                self.data['begin_frame'] = item
+            case 'end_frame':
+                assert isinstance(item, int)
+                self.data['end_frame'] = item
+            case _:
+                self.data[key] = item
     
 
 class Camera(ABC):
@@ -71,7 +104,6 @@ class Camera(ABC):
         pass
 
 
-# extends (Iterator, Closeable)
 class ImageCapture(ABC):
     @abstractmethod
     def close(self) -> None:
@@ -181,50 +213,4 @@ class CRF(Enum):
     
     @staticmethod
     def names() -> list[str]:
-        return [member.name for member in CRF]   
-    
-
-from collections import UserDict
-class CameraOptions(UserDict):
-    KEYS = ['uri', 'fps', 'sync', 'init_ts', 'begin_frame', 'end_frame']
-    
-    def __init__(self, options:dict[str,Any]):
-        super().__init__()
-        
-        for key, value in options.items():
-            self.__setitem__(key, value)
-            
-    def __getitem__(self, key:str) -> Any:
-        try:
-            return self.data[key]
-        except KeyError as e:
-            match key:
-                case 'nosync':
-                    return not self.data['sync']
-                case _:
-                    raise e
-                
-    def __setitem__(self, key:str, item:Any) -> None:
-        match key:
-            case 'camera':
-                assert isinstance(item, str)
-                self.data['uri'] = item
-            case 'fps':
-                assert isinstance(item, int)
-                self.data['fps'] = item
-            case 'sync':
-                assert isinstance(item, bool)
-            case 'nosync':
-                assert isinstance(item, bool)
-                self.data['sync'] = not item
-            case 'init_ts':
-                assert isinstance(item, str|int)
-                self.data['init_ts'] = item
-            case 'begin_frame':
-                assert isinstance(item, int)
-                self.data['begin_frame'] = item
-            case 'end_frame':
-                assert isinstance(item, int)
-                self.data['end_frame'] = item
-            case _:
-                self.data[key] = item
+        return [member.name for member in CRF]

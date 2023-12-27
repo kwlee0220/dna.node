@@ -3,24 +3,22 @@ from __future__ import annotations
 from typing import Optional
 from collections.abc import Iterable
 from dataclasses import asdict, dataclass, field
-
 import json
 
 import numpy as np
+from kafka.consumer.fetcher import ConsumerRecord
 
-from dna import Box, Point, NodeId, TrackId, TrackletId
-from dna.track import TrackState
-from dna.support import sql_utils
-from .types import KafkaEvent, Timestamped
+from dna import KeyValue, Box, Point, NodeId, TrackId, TrackletId, BytesSerDeable, BytesSerializer, BytesDeerializer
+from dna.event import KafkaEvent
+from dna.track.track_state import TrackState
 # from dna.node.zone.types import ZoneExpression
-from .proto.reid_feature_pb2 import NodeTrackProto, LocalizationProto   # type: ignore
-
+from dna.event.proto.reid_feature_pb2 import NodeTrackProto, LocalizationProto   # type: ignore
 
 _WGS84_PRECISION = 7
 _DIST_PRECISION = 3
 
         
-def to_loc_bytes(loc:Point, dist:float) -> LocalizationProto:
+def to_loc_bytes(loc:Point, dist:float) -> bytes:
     proto = LocalizationProto()
     proto.location_x = loc.x
     proto.location_y = loc.y
@@ -35,7 +33,7 @@ def from_loc_bytes(binary_data:bytes) -> tuple[Point,float]:
 
 
 @dataclass(frozen=True, eq=True, order=False, repr=False, slots=True)
-class NodeTrack:
+class NodeTrack(KafkaEvent,BytesSerDeable):
     node_id: NodeId     # node id
     track_id: TrackId   # tracking object id
     state: TrackState   # tracking state
@@ -74,10 +72,16 @@ class NodeTrack:
             return self.track_id < other.luid
         else:
             return False
-
+        
+    def to_kafka_record(self) -> KeyValue[bytes, bytes]:
+        return KeyValue(key=self.key().encode('utf-8'),
+                        value=self.to_json().encode('utf-8'))
     @staticmethod
-    def from_json(json_str:str) -> NodeTrack:
-        from dna.node.zone import ZoneExpression
+    def from_kafka_record(record:ConsumerRecord) -> NodeTrack:
+        return NodeTrack.from_json(record.value.decode('utf-8'))
+
+    @classmethod
+    def from_json(cls, json_str:str) -> NodeTrack:
         def json_to_box(tlbr_list:Optional[Iterable[float]]) -> Optional[Box]:
             return Box(tlbr_list) if tlbr_list else None
 
@@ -102,7 +106,7 @@ class NodeTrack:
                             ts=json_obj['ts'])
 
     def to_json(self) -> str:
-        def box_to_json(box:Box) -> list[float]:
+        def box_to_json(box:Box) -> Optional[list[float]]:
             return [round(v, 2) for v in box.tlbr.tolist()] if box else None
 
         serialized = {
@@ -113,7 +117,7 @@ class NodeTrack:
             'bbox': box_to_json(self.bbox)
         }
         if self.location is not None:
-            serialized['location'] = [round(v, _WGS84_PRECISION) for v in tuple(self.location.xy)]
+            serialized['location'] = [round(float(v), _WGS84_PRECISION) for v in tuple(self.location.xy)]
         if self.distance is not None:
             serialized['distance'] = round(self.distance, _DIST_PRECISION)
         if self.zone_expr:
@@ -121,15 +125,21 @@ class NodeTrack:
         serialized['frame_index'] = self.frame_index
         serialized['ts'] = self.ts
         serialized['first_ts'] = self.first_ts
-
         return json.dumps(serialized, separators=(',', ':'))
-
-    def serialize(self) -> bytes:
-        return self.to_json().encode('utf-8')
-
+    
     @staticmethod
-    def deserialize(serialized:bytes) -> NodeTrack:
-        return NodeTrack.from_json(serialized.decode('utf-8'))
+    def bytes_serializer() -> BytesSerializer[NodeTrack]:
+        return lambda data: data.to_json().encode('utf-8')
+    @staticmethod
+    def bytes_deserializer() -> BytesDeerializer[NodeTrack]:
+        return lambda data: NodeTrack.from_json(data.decode('utf-8'))
+    
+    @staticmethod
+    def pb_serializer() -> BytesSerializer[NodeTrack]:
+        return lambda data: data.to_pb_bytes()
+    @staticmethod
+    def pb_deserializer() -> BytesDeerializer[NodeTrack]:
+        return lambda data: NodeTrack.from_pb_bytes(data)
 
     def updated(self, **kwargs:object) -> NodeTrack:
         fields = asdict(self)
@@ -146,7 +156,6 @@ class NodeTrack:
             vlist += np.round(self.location.xy, _WGS84_PRECISION).tolist() + [round(self.distance, _DIST_PRECISION)]
         else:
             vlist += ['', '']
-
         return ','.join([str(v) for v in vlist])
 
     @staticmethod
@@ -167,12 +176,10 @@ class NodeTrack:
         else:
             location = None
             dist = None
-
         return NodeTrack(node_id=node_id, track_id=track_id, state=state, bbox=loc, first_ts=first_ts,
                             frame_index=frame_idx, ts=ts, location=location, distance=dist)
         
-
-    def to_bytes(self) -> bytes:
+    def to_pb_bytes(self) -> bytes:
         proto = NodeTrackProto()
         proto.node_id = self.node_id
         proto.track_id = self.track_id
@@ -187,11 +194,10 @@ class NodeTrack:
             proto.localization = to_loc_bytes(self.location, self.distance)
         if self.zone_expr is not None:
             proto.zone_expr = self.zone_expr
-
         return proto.SerializeToString()
 
     @staticmethod
-    def from_bytes(binary_data:bytes) -> NodeTrack:
+    def from_pb_bytes(binary_data:bytes) -> NodeTrack:
         proto = NodeTrackProto()
         proto.ParseFromString(binary_data)
         
@@ -204,5 +210,5 @@ class NodeTrack:
 
     def __repr__(self) -> str:
         age = (self.ts - self.first_ts) / 1000
-        return (f"NodeTrack[id={self.node_id}[{self.track_id}]({self.state.abbr}), loc={self.location}, "
+        return (f"NodeTrack[{self.node_id}[{self.track_id}]({self.state.abbr}): loc={self.location}, "
                 f"bbox={self.bbox}, zone={self.zone_expr}, frame={self.frame_index}, ts={self.ts}({age:.1f})]")

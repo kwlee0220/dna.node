@@ -1,25 +1,20 @@
 from __future__ import annotations
 
-from typing import Union, Optional, Generator, Iterable
-from contextlib import closing
-from collections import defaultdict
+from typing import Optional, Generator, Iterable
 from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 import numpy as np
 import cv2
-from omegaconf import OmegaConf
-import json
 import argparse
 
-from dna import Box, Image, BGR, color, Point, initialize_logger
+from dna import Box, BGR, color, Point, initialize_logger
+from dna.camera import Image
 from dna.support import iterables
-from dna.event import NodeTrack
-from dna.event.utils import read_event_file
+from dna.node import NodeTrack
+from dna.event.utils import read_pickle_event_file
 from dna.node.world_coord_localizer import ContactPointType, WorldCoordinateLocalizer
-from dna.node import stabilizer
 from dna.support import plot_utils
-from dna.track.track_state import TrackState
 import scripts
 
 
@@ -32,8 +27,8 @@ def create_localizer(camera_index:int) -> WorldCoordinateLocalizer:
 class Node:
     id:str
     localizer: WorldCoordinateLocalizer
-    color:color
-    max_dist:float = field(default=None)
+    color:color.BGR
+    max_dist:Optional[float] = field(default=None)
     frame_offset:int = field(default=0)
     
     
@@ -67,7 +62,8 @@ def define_args(parser):
 
 def load_scenes(track_files:list[str]) -> dict[int,list[Vehicle]]:
     def read_node_tracks(event_file:str) -> Generator[NodeTrack, None, None]:
-        return (ev for ev in read_event_file(event_file) if isinstance(ev, NodeTrack) and not ev.is_deleted())
+        return (ev for ev in read_pickle_event_file(event_file )
+                        if isinstance(ev, NodeTrack) and not ev.is_deleted())
 
     import itertools
     tracks:Iterable[NodeTrack] = itertools.chain.from_iterable((read_node_tracks(tfile) for tfile in track_files))
@@ -96,14 +92,14 @@ def run(args):
 
 
 class MCLocationDrawer:
-    def __init__(self, scenes: dict[int,Scene], world_image: Image) -> None:
+    def __init__(self, scenes: dict[int,list[Vehicle]], world_image: Image) -> None:
         self.scenes = scenes
         self.world_image = world_image
         
         self.frames = list(scenes.keys())
         self.frames.sort()
 
-    def draw_frame_index(self, convas: Image, base_frame_index:int, vehicles:list[Vehicle]) -> Image:
+    def draw_frame_index(self, convas: Image, base_frame_index:int, vehicles:list[Vehicle]) -> None:
         node_ids = list(iterables.groupby(vehicles, key_func=lambda v: v.node, init_dict=dict()).keys())
         node_ids.sort()
         
@@ -137,7 +133,7 @@ class MCLocationDrawer:
         idx, _ = iterables.find_first(self.frames, lambda f: f > frame_index)
         return max(idx-1, 0)
         
-    def draw(self, title='locations', start_frame:int=1, interactive:bool=True) -> Image:
+    def draw(self, title='locations', start_frame:int=1, interactive:bool=True) -> None:
         cursor = self.find_index(start_frame)
         self.draw_frame(cursor)
         
@@ -176,9 +172,9 @@ class MCLocationDrawer:
         cv2.destroyWindow(title)
 
     def draw_vehicle(self, convas:Image, vehicle:Vehicle, fill_color:BGR) -> Image:
-        convas = cv2.circle(convas, center=tuple(vehicle.point.to_rint()), radius=8,
+        convas = cv2.circle(convas, center=tuple(vehicle.point.round()), radius=8,
                             color=fill_color, thickness=-1, lineType=cv2.LINE_AA)
-        loc = vehicle.point.to_rint() - (-20, 0)
+        loc = vehicle.point - (-20, 0)
         convas = plot_utils.draw_label(convas, f'{vehicle.id}', loc, font_scale=0.7,
                                        color=color.BLACK, fill_color=fill_color, line_thickness=1)
         return convas
@@ -193,6 +189,8 @@ class Vehicle:
     
     @classmethod
     def from_track(cls, track:NodeTrack, localizer:WorldCoordinateLocalizer) -> Vehicle:
+        assert track.location and track.distance
+        
         id = f"{track.node_id[5:]}[{track.track_id}]"
         pt_m = localizer.from_world_coord(track.location)
         point = Point(localizer.to_image_coord(pt_m))

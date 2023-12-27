@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import warnings
-
-from dna.camera.image_processor import to_image_processor_options
 warnings.filterwarnings("ignore")
 
 from omegaconf import OmegaConf
@@ -13,12 +11,9 @@ import warnings
 from torch.serialization import SourceChangeWarning
 warnings.filterwarnings("ignore", category=SourceChangeWarning)
 
-import dna
 from dna import config, initialize_logger, camera
-from dna.camera import ImageProcessorOptions
 from scripts.utils import add_image_processor_arguments
 from dna.node.node_processor import build_node_processor
-from scripts import update_namespace_with_environ
 
 
 def define_args(parser):
@@ -38,9 +33,14 @@ def run(args):
     # argument에 기술된 conf를 사용하여 configuration 파일을 읽는다.
     conf = config.load(args.conf) if args.conf else OmegaConf.create()
     
-    opts_dict = ChainMap(vars(args), dict(conf.camera))
-    options = ImageProcessorOptions(dict(opts_dict))
-    img_proc = camera.create_image_processor(options)
+    # camera uri를 선택한다.
+    options = dict(ChainMap(vars(args), dict(conf.camera)))
+    camera_uri = options.get('camera', options.get('uri'))
+    if camera_uri is None:
+        raise ValueError(f"camera uri is not specified")
+    
+    # image processor 를 생성한다.
+    img_proc = camera.create_image_processor(camera_uri, **options)
     
     if args.silent_kafka:
         config.remove(conf, 'publishing.publish_kafka')

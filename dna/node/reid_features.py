@@ -10,12 +10,14 @@ import numpy as np
 from dna import utils, Size2d, TrackId
 from dna.support import iterables
 from dna.camera import Frame, FrameReader, ImageProcessor, ImageCapture
-from dna.event import NodeTrack, TrackFeature, EventProcessor
+from dna.event import EventNodeImpl
+from .node_track import NodeTrack
+from .track_feature import TrackFeature
 from dna.track import TrackState
 from dna.track.feature_extractor import MetricExtractor
 
 
-class PublishReIDFeatures(FrameReader,EventProcessor):
+class PublishReIDFeatures(FrameReader,EventNodeImpl):
     MAX_FRAME_BUFFER_LENGTH = 80
     REPRESENTATIVE_COUNT = 5
     
@@ -24,7 +26,7 @@ class PublishReIDFeatures(FrameReader,EventProcessor):
                  *,
                  logger:Optional[logging.Logger]=None) -> None:
         FrameReader.__init__(self)
-        EventProcessor.__init__(self)
+        EventNodeImpl.__init__(self)
         
         self.extractor = extractor
         self.distinct_distance = distinct_distance
@@ -77,7 +79,7 @@ class PublishReIDFeatures(FrameReader,EventProcessor):
         for track in groups[TrackState.Deleted]:
             if self.logger and self.logger.isEnabledFor(logging.INFO):
                 self.logger.info(f"publish closed feature: track={track.track_id}")
-            self._publish_event(TrackFeature(node_id=track.node_id, track_id=track.track_id,
+            self.publish_event(TrackFeature(node_id=track.node_id, track_id=track.track_id,
                                              feature=None, frame_index=track.frame_index, ts=track.ts))
         
     def remove_overlaps(self, group:list[NodeTrack]):
@@ -104,7 +106,7 @@ class PublishReIDFeatures(FrameReader,EventProcessor):
             if done:
                 if self.logger and self.logger.isEnabledFor(logging.INFO):
                     self.logger.info(f"publish a feature: track={track.track_id}, dist={dist:.2f}, size={track.detection_box.size()}")
-                self._publish_event(to_feature(track, feature))
+                self.publish_event(to_feature(track, feature))
             else:
                 # 이전 feature와 similarity가 높은 경우는 feature 생성을 skip한다.
                 if self.logger and self.logger.isEnabledFor(logging.DEBUG):
@@ -128,7 +130,6 @@ class PublishReIDFeatures(FrameReader,EventProcessor):
               
     def open(self, img_proc:ImageProcessor) -> None: pass
     def close(self) -> None: pass
-
     def read(self, frame:Frame) -> None:
         self.frame_buffer.append(frame)
         

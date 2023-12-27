@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 
 import cv2
 
-from dna import Box, Point, Image, BGR
-from dna.camera import Frame
+from dna import Box, Point, BGR
+from dna.camera import Image, Frame
 from dna.support import plot_utils
 from dna.track import TrackState
 
@@ -63,7 +63,7 @@ class ObjectTrack:
         return hash(self.id)
 
 
-class ObjectTracker(metaclass=ABCMeta):
+class ObjectTracker(ABC):
     @abstractmethod
     def track(self, frame: Frame) -> list[ObjectTrack]: pass
 
@@ -72,7 +72,7 @@ class ObjectTracker(metaclass=ABCMeta):
     def tracks(self) -> list[ObjectTrack]: pass
 
 
-class TrackProcessor(metaclass=ABCMeta):
+class TrackProcessor(ABC):
     @abstractmethod
     def track_started(self, tracker:ObjectTracker) -> None: pass
 
@@ -84,7 +84,7 @@ class TrackProcessor(metaclass=ABCMeta):
     
 
 import numpy as np
-class MetricExtractor(metaclass=ABCMeta):
+class MetricExtractor(ABC):
     @abstractmethod
     def extract_crops(self, crops:list[Image]) -> np.ndarray:
         pass

@@ -11,30 +11,22 @@ from pathlib import Path
 from tqdm import tqdm
 import argparse
 
+from kafka.consumer.fetcher import ConsumerRecord
+
 from dna import NodeId, initialize_logger
 from dna.event import NodeTrack, KafkaEvent
-from dna.event import read_topics, open_kafka_consumer
+from dna.event.kafka_utils import read_topics, open_kafka_consumer
 from dna.node.node_event_type import NodeEventType
 from dna.support import iterables
+from scripts.utils import add_kafka_consumer_arguments
 
 
 def define_args(parser):
     # Kafka Consumer-related arguments
-    parser.add_argument("--kafka_brokers", nargs='+', metavar="hosts", default=['localhost:9092'],
-                        help="Kafka broker hosts list")
-    parser.add_argument("--kafka_offset", default='earliest', choices=['latest', 'earliest', 'none'],
-                        help="A policy for resetting offsets: 'latest', 'earliest', 'none'")
-    parser.add_argument("--topic", nargs='+', help="topic names")
-    parser.add_argument("--timeout_ms", metavar="milli-seconds", type=int, default=1000,
-                        help="Kafka poll timeout in milli-seconds")
-    parser.add_argument("--initial_timeout_ms", metavar="milli-seconds", type=int, default=5000,
-                        help="initial Kafka poll timeout in milli-seconds")
-    parser.add_argument("--stop_on_timeout", action='store_true', help="stop when a poll timeout expires")
-    
+    add_kafka_consumer_arguments(parser)
     parser.add_argument("--node_offsets", metavar="csv", default=None, help="node ids and camera frame offsets")
     parser.add_argument("--output", metavar="path", default=None, help="output file.")
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
-
 
 
 def parse_node_offset_args(node_offsets:str) -> dict[NodeId,int]:
@@ -104,17 +96,14 @@ def run(args):
     # 주어진 topic에 저장된 모든 node event를 download한다.
     full_events:list[KafkaEvent] = []
     download_counts:DefaultDict[str,int] = defaultdict(int)
-    with closing(open_kafka_consumer(brokers=args.kafka_brokers,
-                                     offset_reset=args.kafka_offset,
-                                     key_deserializer=lambda k: k.decode('utf-8'))) as consumer:
-        consumer.subscribe(args.topic)
-        for record in tqdm(read_topics(consumer, 
-                                       initial_timeout_ms=args.initial_timeout_ms,
-                                       timeout_ms=args.timeout_ms,
-                                       stop_on_timeout=args.stop_on_timeout)):
-            type = NodeEventType.from_topic(record.topic)
-            full_events.append(type.deserialize(record.value))
-            download_counts[record.topic] += 1
+    
+    params = vars(args)
+    with closing(open_kafka_consumer(**params) as consumer:
+        for record in tqdm(read_topics2(consumer, **params)):
+            if isinstance(record, ConsumerRecord):
+                type = NodeEventType.from_topic(record.topic)
+                full_events.append(type.deserialize(record.value))
+                download_counts[record.topic] += 1
     print(f"downloaded {len(full_events)} topic events: {dict(download_counts)}")
     
     # 전체 event를 node별로 grouping하고, node별로 설정된 offset 정보를

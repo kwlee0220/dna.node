@@ -3,13 +3,15 @@ from __future__ import annotations
 from typing import Union
 import logging
 
-from dna.event import EventProcessor, NodeTrack, SilentFrame
-from dna.node.zone import ZoneVisit, ZoneSequence
+from dna.event import EventNodeImpl
+from ..types import SilentFrame
+from ..node_track import NodeTrack
+from .events import ZoneVisit, ZoneSequence
 
 LOGGER = logging.getLogger('dna.node.zone.Turn')
 
 
-class ZoneSequenceCollector(EventProcessor):
+class ZoneSequenceCollector(EventNodeImpl):
     def __init__(self) -> None:
         super().__init__()
         
@@ -27,7 +29,7 @@ class ZoneSequenceCollector(EventProcessor):
                 
             if ev.is_deleted():
                 if zseq:
-                    self._publish_event(zseq.duplicate())
+                    self.publish_event(zseq.duplicate())
             else:
                 self._handle_zone_event(ev)
         else:
@@ -56,16 +58,16 @@ class ZoneSequenceCollector(EventProcessor):
 
             last = ZoneVisit.open(ev)
             zseq.append(last)
-            self._publish_event(zseq.duplicate())
+            self.publish_event(zseq.duplicate())
             
             last.close_at_event(ev)
-        self._publish_event(zseq.duplicate())
+        self.publish_event(zseq.duplicate())
         
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}: zseqs={self.sequences}"
 
 
-class FinalZoneSequenceFilter(EventProcessor):
+class FinalZoneSequenceFilter(EventNodeImpl):
     def __init__(self) -> None:
         super().__init__()
         
@@ -81,9 +83,9 @@ class FinalZoneSequenceFilter(EventProcessor):
         elif isinstance(ev, NodeTrack) and ev.is_deleted():
             zseq = self.sequences.pop(ev.track_id, None)
             if zseq:
-                self._publish_event(zseq)
+                self.publish_event(zseq)
                 
-class ZoneSequenceWriter(EventProcessor):
+class ZoneSequenceWriter(EventNodeImpl):
     def __init__(self, log_file:str) -> None:
         super().__init__()
 

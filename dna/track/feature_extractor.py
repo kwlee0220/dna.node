@@ -8,7 +8,8 @@ from scipy.stats import multivariate_normal
 import torch
 import torchvision
 
-from dna import Image, Box
+from dna import Box
+from dna.camera import Image
 from dna.detect import Detection
 from .types import MetricExtractor
 

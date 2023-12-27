@@ -13,19 +13,19 @@ class RedisEventPublisher(EventListener):
     def __init__(self, redis:redis.Redis, channel:str, *, logger:Optional[logging.Logger]=None) -> None:
         self.redis = redis
         self.channel = channel
-        self.closed = False
+        self.completed = False
         self.logger = logger
         
         if self.logger and self.logger.isEnabledFor(logging.INFO):
             self.logger.info(f"publishing node-track event to channel '{self.channel}'")
 
-    def close(self) -> None:
-        if not self.closed:
-            self.closed = True
+    def on_completed(self) -> None:
+        if not self.completed:
+            self.completed = True
 
     def handle_event(self, ev:Any) -> None:
         if isinstance(ev, KafkaEvent):
-            if self.closed:
+            if self.completed:
                 raise InvalidStateError("RedisEventPublisher has been closed already: {self}")
             self.redis.publish(self.channel, ev.to_json())
         elif isinstance(ev, SilentFrame):
@@ -35,5 +35,5 @@ class RedisEventPublisher(EventListener):
                 self.logger.warn(f"cannot publish non-Kafka event: {ev}")
         
     def __repr__(self) -> str:
-        closed_str = ', closed' if self.closed else ''
+        closed_str = ', closed' if self.completed else ''
         return f"RedisEventPublisher(channel={self.channel}{closed_str})"

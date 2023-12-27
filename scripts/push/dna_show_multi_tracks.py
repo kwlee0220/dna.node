@@ -10,14 +10,16 @@ import numpy as np
 import cv2
 from omegaconf import OmegaConf
 from kafka import KafkaConsumer
+from kafka.consumer.fetcher import ConsumerRecord
 
-from dna import Box, Image, BGR, color, Point, TrackletId, initialize_logger, config
-from dna.event import NodeTrack, read_topics
+from dna import Box, BGR, color, Point, TrackletId, initialize_logger, config
+from dna.camera import Image
+from dna.event import NodeTrack
+from dna.event.kafka_utils import open_kafka_consumer, read_topics
 from dna.node import stabilizer
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer, ContactPointType
 from dna.support import plot_utils
 from dna.track import TrackState
-from scripts import update_namespace_with_environ
 
 COLORS = {
     'etri:04': color.RED,
@@ -63,7 +65,7 @@ class MCLocationDrawer:
                 pt_m = localizer.from_world_coord(track.location)
                 # localizer = self.localizers[track.node_id]
                 # pt_m, dist = localizer.from_camera_box(track.location.tlbr)
-                center = tuple(Point(localizer.to_image_coord(pt_m)).to_rint().xy)
+                center = tuple(Point(localizer.to_image_coord(pt_m)).round().xy)
                 convas = cv2.circle(convas, center, radius=7, color=color, thickness=-1, lineType=cv2.LINE_AA)
         cv2.imshow(self.title, convas)
         return convas
@@ -72,7 +74,6 @@ class MCLocationDrawer:
 def main():
     args, _ = parse_args()
     initialize_logger(args.logger)
-    args = update_namespace_with_environ(args)
     
     world_image = cv2.imread("regions/etri_testbed/ETRI_221011.png", cv2.IMREAD_COLOR)
     LOCALIZERS['etri:04'] = WorldCoordinateLocalizer('regions/etri_testbed/etri_testbed.json',
@@ -85,9 +86,8 @@ def main():
                                                      camera_index=3, contact_point=ContactPointType.Simulation)
     drawer = MCLocationDrawer(title="Multiple Objects Tracking", localizers=LOCALIZERS, world_image=world_image)
     
-    consumer = KafkaConsumer(bootstrap_servers=args.kafka_brokers,
-                             auto_offset_reset=args.kafka_offset,
-                             key_deserializer=lambda k: k.decode('utf-8'))
+    consumer = open_kafka_consumer(kafka_brokers=args.kafka_brokers,
+                                   kafka_offset=args.kafka_offset)
     consumer.subscribe(['node-tracks'])
     
     first_ts = -1
@@ -95,7 +95,9 @@ def main():
     done = False
     tracks:dict[TrackletId,NodeTrack] = dict()
     while not done:
-        for record in read_topics(consumer, timeout=500):
+        records = read_topics(consumer, timeout=1000)
+        records = filter(lambda r: isinstance(r, ConsumerRecord), records)
+        for record in records:
             track = NodeTrack.deserialize(record.value)
             
             if track.is_deleted():

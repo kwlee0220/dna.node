@@ -2,14 +2,18 @@ from __future__ import annotations
 
 from typing import Optional, Union, Iterable, Callable, Any
 
-from omegaconf import OmegaConf
+import sys
+
+from omegaconf.dictconfig import DictConfig
 import numpy as np
 
 from dna import Point
-from dna.event import TimeElapsed, EventProcessor, KafkaEvent, NodeTrack, SilentFrame
+from dna.event import EventNodeImpl, KafkaEvent
+from .types import SilentFrame
+from .node_track import NodeTrack
 
 
-ALPHA = 1   # smoothing hyper parameter
+ALPHA = 1.0   # smoothing hyper parameter
             # ALPHA가 강할 수록 smoothing을 더 강하게 진행 (기존 location 정보를 잃을 수도 있음)
 
 def smoothing_track(track, alpha=ALPHA):
@@ -88,7 +92,7 @@ def stabilization_location(location, frame=5, alpha=ALPHA) -> list[float]:
     return stab_location
 
 
-_MAX_FRAME_INDEX = 9999999999
+_MAX_FRAME_INDEX = sys.maxsize
 
 class SmoothingSession:
     def __init__(self, look_ahead:int, smoothing_factor:float) -> None:
@@ -101,6 +105,7 @@ class SmoothingSession:
     
     def smooth(self, ev:NodeTrack) -> Optional[NodeTrack]:
         self.pending_events.append(ev)
+        assert ev.location
         smoothed_pt = self.stabilizer.perform(ev.location)
         if smoothed_pt is not None:
             ev = self.pending_events.pop(0)
@@ -108,7 +113,7 @@ class SmoothingSession:
         else:
             return None
         
-    def min_frame_index(self) -> Optional[int]:
+    def min_frame_index(self) -> int:
         return self.pending_events[0].frame_index if self.pending_events else _MAX_FRAME_INDEX
     
     def __repr__(self) -> str:
@@ -116,26 +121,28 @@ class SmoothingSession:
 
 
 _DEFAULT_SMOOTHING_FACTOR = 1
-class TrackletSmoothProcessor(EventProcessor):
-    def __init__(self, conf:OmegaConf) -> None:
+class TrackletSmoothProcessor(EventNodeImpl):
+    def __init__(self, conf:DictConfig) -> None:
         super().__init__()
         
         self.look_ahead = conf.look_ahead
         self.smoothing_factor = conf.get("smoothing_factor", _DEFAULT_SMOOTHING_FACTOR)
         self.sessions:dict[str,SmoothingSession] = dict()
+        self.last_frame_index = -1
 
-    def close(self) -> None:
+    def on_completed(self) -> None:
         import itertools
         for ev in itertools.chain(session.close() for session in self.sessions.values()):
-            self._publish_event(ev)
+            self.publish_event(ev)
             
-        super().close()
+        super().on_completed()
         
     def min_frame_index(self) -> int:
         min_index = min((session.min_frame_index() for session in self.sessions.values()), default=_MAX_FRAME_INDEX)
-        return min_index if min_index < _MAX_FRAME_INDEX else None
+        return min_index if min_index < _MAX_FRAME_INDEX else self.last_frame_index
     
-    def handle_event(self, ev:Union[NodeTrack,TimeElapsed,SilentFrame]) -> None:
+    def handle_event(self, ev:NodeTrack|SilentFrame) -> None:
+        self.last_frame_index = ev.frame_index
         if isinstance(ev, NodeTrack):
             session = self.sessions.get(ev.track_id, None)
             if session is None:
@@ -145,16 +152,14 @@ class TrackletSmoothProcessor(EventProcessor):
             if ev.is_deleted():
                 del self.sessions[ev.track_id]
                 for ev in session.close():
-                    self._publish_event(ev)
+                    self.publish_event(ev)
             else:
                 smoothed = session.smooth(ev)
                 if smoothed:
-                    self._publish_event(smoothed)
+                    self.publish_event(smoothed)
         elif isinstance(ev, SilentFrame):
             assert len(self.sessions) == 0
-            self._publish_event(ev)
-        elif isinstance(ev, TimeElapsed):
-            self._publish_event(ev)
+            self.publish_event(ev)
         else:
             raise ValueError(f'unexpected event: {ev}')
     

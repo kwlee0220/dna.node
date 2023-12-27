@@ -5,7 +5,8 @@ import sys
 import argparse
 import cv2
 
-from dna import Box, Image, color, Point, initialize_logger
+from dna import Box, color, Point, initialize_logger
+from dna.camera import Image
 from dna.support import iterables
 from dna.event import NodeTrack, JsonEvent, read_kafka_event_file, parse_event_string, read_json_event_file
 from dna.event.json_event import JsonEventImpl

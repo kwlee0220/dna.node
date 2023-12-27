@@ -4,7 +4,8 @@ from pathlib import Path
 
 import numpy as np
 
-from dna import Image, Box
+from dna import Box
+from dna.camera import Image
 from dna.detect import Detection
 from ..types import MetricExtractor
 

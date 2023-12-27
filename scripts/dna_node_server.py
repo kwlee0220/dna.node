@@ -5,7 +5,6 @@ import argparse
 
 from dna import initialize_logger
 from dna.node.redis import RedisExecutionServer
-from scripts import update_namespace_with_environ
 
 LOGGER = logging.getLogger('dna.node.redis')
 
@@ -21,8 +20,6 @@ def define_args(parser):
 
 def run(args):
     initialize_logger(args.logger)
-    
-    args = update_namespace_with_environ(args)
     
     server = RedisExecutionServer(redis_url=args.redis, request_channel=args.req_channel,
                                   args=args, logger=LOGGER)

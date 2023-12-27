@@ -7,7 +7,8 @@ import cv2
 import numpy as np
 import re
 
-from dna import Point, Image, color, Box, Size2d
+from dna import Point, color, Box, Size2d
+from dna.camera import Image
 from dna.support import plot_utils
 from dna.event import NodeTrack
 from dna.assoc import GlobalTrack

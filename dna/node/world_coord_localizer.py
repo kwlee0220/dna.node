@@ -228,7 +228,7 @@ if __name__ == '__main__':
     print(coord, dist)
 
     img = cv2.imread(scripts.WORLD_MAP_IMAGE_FILE, cv2.IMREAD_COLOR)
-    img_coord = Point(localizer.to_image_coord(pt_m)).to_rint()
+    img_coord = Point(localizer.to_image_coord(pt_m)).round()
     img = cv2.circle(img, img_coord, 5, color.RED, -1)
     while ( True ):
         cv2.imshow('image', img)

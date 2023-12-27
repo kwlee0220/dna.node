@@ -3,13 +3,12 @@ from __future__ import annotations
 from omegaconf import OmegaConf
 import pika
 
-from dna import utils, ByteString
 from dna.execution import ExecutionContext, ExecutionState
 from .pika_rpc import JSON_SERDE
 
 
 class PikaExecutionContext(ExecutionContext):
-    def __init__(self, request:ByteString|OmegaConf, channel, method, reply_to:str,
+    def __init__(self, request:bytes|OmegaConf, channel, method, reply_to:str,
                  properties:pika.BasicProperties) -> None:
         self.request = request
         self.channel = channel

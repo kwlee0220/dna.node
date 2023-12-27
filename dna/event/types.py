@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 from typing import TypeAlias, TypeVar, Any, Protocol, runtime_checkable
+from abc import ABC
 from collections.abc import Callable
-from abc import ABCMeta, abstractmethod
-from dataclasses import dataclass, field
+from abc import ABC, abstractmethod
 
-import json
-import time
+from kafka.consumer.fetcher import ConsumerRecord
 
-from dna import ByteString, NodeId, TrackId, TrackletId, Point
-from dna.track import TrackState
+from dna import Point, KeyValue
 
 
 @runtime_checkable
 class Timestamped(Protocol):
+    __slots__ = ()
+    
     @property
     def ts(self) -> int: ...
     
@@ -22,6 +22,8 @@ TimestampedT = TypeVar("TimestampedT", bound=Timestamped)
 
 @runtime_checkable
 class TrackEvent(Protocol):
+    __slots__ = ()
+    
     @property
     def id(self) -> str: ...
     
@@ -33,74 +35,42 @@ class TrackEvent(Protocol):
     
     @property
     def ts(self) -> int: ...
-    
-TrackEventT = TypeVar("TrackEventT", bound=Timestamped)
 
 
-# conceptual inherits 'Timestamped'
-@runtime_checkable
-class KafkaEvent(Protocol):
+class KafkaEvent(ABC):
     __slots__ = ()
     
+    @abstractmethod
     def key(self) -> str:
         """Returns key value for Kafka Producer record.
 
         Returns:
             str: key value for Kafka Producer record.
         """
+        ...
     
-    def serialize(self) -> bytes:
+    @abstractmethod
+    def to_kafka_record(self) -> KeyValue[bytes, bytes]:
         """Returns encoded value for Kafka Producer record.
 
         Returns:
-            bytes: encoded value for Kafka Producer record.
+            KeyValue[bytes, bytes]: encoded key and value for Kafka Producer record.
         """
+        ...
+        
+    @staticmethod
+    @abstractmethod
+    def from_kafka_record(record:ConsumerRecord) -> KafkaEvent:
+        ...
 
-
-@dataclass(frozen=True, eq=True)    # slots=True
-class TrackDeleted:
-    node_id: NodeId     # node id
-    track_id: TrackId   # tracking object id
-    frame_index: int = field(hash=False)
-    ts: int = field(hash=False)
-    source:object = field(default=None)
-
-    def key(self) -> str:
-        return self.node_id
-
-    def ts(self) -> int:
-        return self.ts
-
-    @property
-    def tracklet_id(self) -> TrackletId:
-        return TrackletId(self.node_id, self.track_id)
-
-    def __repr__(self) -> str:
-        return (f"{self.__class__.__name__}: id={self.node_id}[{self.track_id}], frame={self.frame_index}, ts={self.ts}")
-
-
-@dataclass(frozen=True)
-class TimeElapsed:
-    ts: int = field(default_factory=lambda: int(round(time.time() * 1000)))
-    
-
-@dataclass(frozen=True, eq=True)
-class SilentFrame:
-    frame_index: int
-    ts: int = field(default_factory=lambda: int(round(time.time() * 1000)))
-
-
-# class TrackEvent(Protocol):
-#     int:str
-#     location: Point
-#     ts:int
-    
 
 @runtime_checkable
-class JsonEvent(Timestamped, Protocol):
-    __slots__ = ()
+class JsonEvent(Protocol):
+    @property
+    def ts(self) -> int: ...
     
-    def to_json(self) -> str: ...
+    def to_json(self) -> str:
+        ...
     
     @classmethod
     def from_json(cls, json_str:str) -> JsonEvent: ...

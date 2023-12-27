@@ -1,4 +1,3 @@
-from .utils import update_namespace_with_environ, read_json_events
 
 
 # WORLD_MAP_IMAGE_FILE = 'regions/etri_testbed/ETRI_satellite_230925.png'

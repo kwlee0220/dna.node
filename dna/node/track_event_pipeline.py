@@ -6,11 +6,11 @@ import logging
 from datetime import timedelta
 
 import numpy as np
-from omegaconf import OmegaConf
+from omegaconf.dictconfig import DictConfig
 
 from dna import Size2d, config, NodeId, sub_logger, TrackletId
 from dna.camera import Frame, ImageProcessor
-from dna.event import TimeElapsed, SilentFrame, NodeTrack, MultiStagePipeline, EventQueue, EventProcessor
+from dna.event import TimeElapsed, SilentFrame, MultiStagePipeline, EventQueue, EventNodeImpl
 from dna.event.event_processors import DropEventByType, TimeElapsedGenerator
 from dna.track.types import TrackProcessor, ObjectTrack
 from dna.track.dna_tracker import DNATracker
@@ -23,11 +23,11 @@ _DEFAULT_BUFFER_TIMEOUT = 5.0
 
 class MinFrameIndexComposer:
     def __init__(self) -> None:
-        self.processors:list[EventProcessor] = []
+        self.processors:list[EventNodeImpl] = []
         self.min_indexes:list[int] = []
         self.min_holder = -1
         
-    def append(self, proc:EventProcessor) -> None:
+    def append(self, proc:EventNodeImpl) -> None:
         self.processors.append(proc)
         self.min_indexes.append(None)
         
@@ -52,8 +52,8 @@ class MinFrameIndexComposer:
 
 
 class NodeTrackEventPipeline(MultiStagePipeline, TrackProcessor):
-    def __init__(self, node_id:NodeId, publishing_conf:OmegaConf,
-                 image_processor:Optional[ImageProcessor]=None,
+    def __init__(self, node_id:NodeId, publishing_conf:DictConfig,
+                 image_processor:ImageProcessor,
                  *,
                  logger:Optional[logging.Logger]=None) -> None:
         MultiStagePipeline.__init__(self)
@@ -63,17 +63,17 @@ class NodeTrackEventPipeline(MultiStagePipeline, TrackProcessor):
         self.services:dict[str,tuple[Any,bool]] = dict()
         self._tick_gen = None
         
-        self._group_event_queue:GroupByFrameIndex = None
+        self.__group_event_queue:Optional[GroupByFrameIndex] = None
         self.logger = logger
         
         self.min_frame_indexers:MinFrameIndexComposer = MinFrameIndexComposer()
         
         # drop unnecessary tracks (eg. trailing 'TemporarilyLost' tracks)
-        refind_track_conf = config.get(publishing_conf, 'refine_tracks')
-        if refind_track_conf:
+        refine_track_conf = config.get(publishing_conf, 'refine_tracks')
+        if refine_track_conf:
             from .refine_track_event import RefineTrackEvent
-            buffer_size = config.get(refind_track_conf, 'buffer_size', default=_DEFAULT_BUFFER_SIZE)
-            buffer_timeout = config.get(refind_track_conf, 'buffer_timeout', default=_DEFAULT_BUFFER_TIMEOUT)
+            buffer_size = config.get(refine_track_conf, 'buffer_size', default=_DEFAULT_BUFFER_SIZE)
+            buffer_timeout = config.get(refine_track_conf, 'buffer_timeout', default=_DEFAULT_BUFFER_TIMEOUT)
             refine_tracks = RefineTrackEvent(buffer_size=buffer_size, buffer_timeout=buffer_timeout,
                                              logger=sub_logger(logger, "refine"))
             self.add_stage("refine_tracks", refine_tracks)
@@ -166,11 +166,11 @@ class NodeTrackEventPipeline(MultiStagePipeline, TrackProcessor):
     
     @property
     def group_event_queue(self) -> EventQueue:
-        if not self._group_event_queue:
+        if not self.__group_event_queue:
             from dna.node.utils import GroupByFrameIndex
-            self._group_event_queue = GroupByFrameIndex(self.min_frame_indexers.min_frame_index)
-            self.add_listener(self._group_event_queue)
-        return self._group_event_queue
+            self.__group_event_queue = GroupByFrameIndex(self.min_frame_indexers.min_frame_index)
+            self.add_listener(self.__group_event_queue)
+        return self.__group_event_queue
         
     def track_started(self, tracker) -> None: pass
     def track_stopped(self, tracker) -> None:
@@ -184,13 +184,13 @@ class NodeTrackEventPipeline(MultiStagePipeline, TrackProcessor):
         else:
             self.handle_event(SilentFrame(frame_index=frame.index, ts=frame.ts))
 
-    def _append_processor(self, proc:EventProcessor) -> None:
+    def _append_processor(self, proc:EventNodeImpl) -> None:
         self._tail.add_listener(proc)
         self._tail = proc
         
   
 _DEEP_SORT_REID_MODEL = 'models/deepsort/model640.pt'      
-def load_reid_feature_generator(conf:OmegaConf,
+def load_reid_feature_generator(conf:DictConfig,
                                 pipeline:NodeTrackEventPipeline,
                                 image_processor:ImageProcessor,
                                 *, logger:Optional[logging.Logger]=None):
@@ -212,7 +212,7 @@ def load_reid_feature_generator(conf:OmegaConf,
     pipeline.services['reid_features'] = (gen_features, False)
 
 
-def load_kafka_publisher(conf:OmegaConf,
+def load_kafka_publisher(conf:DictConfig,
                          pipeline:NodeTrackEventPipeline,
                          *,
                          logger:Optional[logging.Logger]=None) -> None:
@@ -228,7 +228,7 @@ def load_kafka_publisher(conf:OmegaConf,
                                      logger=sub_logger(logger, 'features'))
 
 
-def load_plugin_publish_tracks(conf:OmegaConf, pipeline:NodeTrackEventPipeline, 
+def load_plugin_publish_tracks(conf:DictConfig, pipeline:NodeTrackEventPipeline, 
                                *,
                                logger:Optional[logging.Logger]=None):
     from dna.event import KafkaEventPublisher
@@ -240,14 +240,14 @@ def load_plugin_publish_tracks(conf:OmegaConf, pipeline:NodeTrackEventPipeline,
     pipeline.services['publish_node_tracks'] = (publisher, False)
 
 
-def load_plugin_publish_features(conf:OmegaConf, pipeline:NodeTrackEventPipeline,
+def load_plugin_publish_features(conf:DictConfig, pipeline:NodeTrackEventPipeline,
                                  *,
                                  logger:Optional[logging.Logger]=None):
     if 'reid_features' in pipeline.services:
         from dna.event import KafkaEventPublisher
         kafka_brokers = config.get(conf, 'kafka_brokers')
         topic = config.get(conf, 'topic', default='track-features')
-        publisher = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=logger, print_elapsed=False)
+        publisher = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=logger)
         reid_feature_gen, _ = pipeline.services['reid_features']
         reid_feature_gen.add_listener(publisher)
         pipeline.services['publish_track_features'] = (publisher, False)
@@ -256,8 +256,8 @@ def load_plugin_publish_features(conf:OmegaConf, pipeline:NodeTrackEventPipeline
 
 
 def load_output_writer(output_file:str, pipeline:NodeTrackEventPipeline):
-    from .utils import NodeOutputWriter
-    writer = NodeOutputWriter(output_file)
+    from .utils import NodeEventWriter
+    writer = NodeEventWriter(output_file)
     pipeline.group_event_queue.add_listener(writer)
     
     if 'reid_features' in pipeline.services:

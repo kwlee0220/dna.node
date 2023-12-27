@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import numpy.typing as npt
 
-from dna import Box, Point, Image, BGR
-from dna.camera import Frame
+from dna import Box, Point, BGR
+from dna.camera import Image, Frame
 from dna.detect import Detection
 from dna.support import plot_utils
 from dna.track import TrackState

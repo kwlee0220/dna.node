@@ -8,8 +8,9 @@ import argparse
 
 from dna import config
 from dna.support import iterables
-from dna.event import KafkaEvent, open_kafka_producer, read_pickle_event_file, synchronize_time
-from dna.event.node_event_type import NodeEventType
+from dna.event import KafkaEvent, read_pickle_event_file, synchronize_time
+from dna.event.kafka_utils import open_kafka_producer
+from dna.node.node_event_type import NodeEventType
 
 
 def define_args(parser):
@@ -68,7 +69,8 @@ def run(args):
             
         for ev in events:
             topic = NodeEventType.find_topic(ev)
-            producer.send(topic, value=ev.serialize(), key=ev.key())
+            key, value = ev.to_kafka_record()
+            producer.send(topic, value=value, key=key)
             if progress is not None:
                 progress.update()
     

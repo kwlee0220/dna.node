@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Optional, Protocol, runtime_checkable
+from typing import Any, Optional, Protocol, runtime_checkable, overload
 from dataclasses import field, replace
 from contextlib import suppress
 import logging
@@ -8,27 +8,28 @@ import time
 from datetime import timedelta
 
 import cv2
-from omegaconf.dictconfig import DictConfig
 
-from dna import Size2di, color, config, sub_logger, camera
-from dna.utils import utc_now_millis
-from dna.camera import Frame, Camera, ImageCapture, CRF, CameraOptions
-from dna.execution import AbstractExecution, ExecutionContext, CancellationError
+from .. import color
+from ..utils import utc_now_millis, sub_logger
+from ..size2di import Size2di
+from ..execution import AbstractExecution, ExecutionContext, CancellationError
+from .types import Frame, Camera, ImageCapture, CRF, CameraOptions
+
+_DEFAULT_WINDOW_SIZE = Size2di(0, 0)
 
 
-def to_image_processor_options(conf:DictConfig) -> dict[str,Any]:
-    return config.to_dict(config.filter(conf, 'show', 'output_video', 'title', 'progress', 'crf'))
-    
-    
-from typing import Any
 class ImageProcessorOptions(CameraOptions):
-    KEYS = CameraOptions.KEYS + ['show', 'output_video', 'title', 'progress', 'crf']
+    PROCESSOR_ONLY_KEYS = {'camera_uri', 'show', 'output_video', 'title', 'progress', 'crf'}
+    KEYS = CameraOptions.KEYS.union(PROCESSOR_ONLY_KEYS)
     
-    def __init__(self, options:dict[str,Any]):
-        super().__init__(options)
+    def __init__(self, **options):
+        super().__init__(**options)
                 
     def __setitem__(self, key: str, item: Any) -> None:
         match key:
+            case 'camera_uri':
+                assert isinstance(item, str)
+                self.data[key] = item
             case 'show':
                 if isinstance(key, str):
                     self.data['show'] = Size2di.from_expr(item)
@@ -56,12 +57,12 @@ class ImageProcessorOptions(CameraOptions):
                     self.data['show'] = item
                 else:
                     raise ValueError(f"invalid option value: {key}={item}")
-            case 'hide':
-                assert isinstance(item, bool)
-                if item and 'show' in self.data:
-                    del self.data['show']
             case _:
                 super().__setitem__(key, item)
+    
+    def to_camera_options(self) -> CameraOptions:
+        opts = { k:v for k, v in self.items() if k not in ImageProcessorOptions.PROCESSOR_ONLY_KEYS }
+        return CameraOptions(**opts)
 
   
 @runtime_checkable
@@ -84,29 +85,54 @@ class FrameProcessor(Protocol):
     def process(self, frame:Frame) -> Frame: ...
     def close(self) -> None: ...
     
-    
-def create_image_processor(options:ImageProcessorOptions,
-                           *,
-                           camera_obj:Optional[Camera]=None,
-                           context:Optional[ExecutionContext]=None,
-                           frame_processor:Optional[FrameProcessor]=None,
-                           frame_updaters:list[FrameUpdater]=[]) -> ImageProcessor:
-    if camera_obj is None:
-        camera_obj = camera.load_camera(options['uri'], options)
-    return ImageProcessor(camera_obj.open(), options, context=context,
-                          frame_processor=frame_processor,
-                          frame_updaters=frame_updaters)
 
+@overload
+def create_image_processor(camera_obj:Camera, /,
+                            context:Optional[ExecutionContext]=None,
+                            frame_processor:Optional[FrameProcessor]=None,
+                            **options) -> ImageProcessor:
+    pass
 
-def process_images(options:ImageProcessorOptions,
-                   *,
-                   camera_obj:Optional[Camera]=None,
+@overload
+def create_image_processor(camera_uri:str, /,
+                            context:Optional[ExecutionContext]=None,
+                            frame_processor:Optional[FrameProcessor]=None,
+                            **options) -> ImageProcessor:
+    pass
+
+def create_image_processor(_camera:Camera|str, /,
+                            context:Optional[ExecutionContext]=None,
+                            frame_processor:Optional[FrameProcessor]=None,
+                            **options) -> ImageProcessor:
+    img_proc_opts = ImageProcessorOptions(**options)
+    if isinstance(_camera, str):
+        from .camera import load_camera
+        camera_opts = dict(img_proc_opts.to_camera_options())
+        _camera = load_camera(_camera, **camera_opts)
+    capture = _camera.open()
+        
+    return ImageProcessor(capture, img_proc_opts,
+                          context=context,
+                          frame_processor=frame_processor)
+
+@overload
+def process_images(camera_obj:Camera, /,
                    context:Optional[ExecutionContext]=None,
                    frame_processor:Optional[FrameProcessor]=None,
-                   frame_updaters:list[FrameUpdater]=[]) -> Result:
-    proc = create_image_processor(options, camera_obj=camera_obj, context=context,
-                                  frame_processor=frame_processor,
-                                  frame_updaters=frame_updaters)
+                   **options) -> Result:
+    pass
+@overload
+def process_images(camera_uri:str, /,
+                   context:Optional[ExecutionContext]=None,
+                   frame_processor:Optional[FrameProcessor]=None,
+                   **options) -> Result:
+    pass
+
+def process_images(_camera:Camera|str, /,
+                   context:Optional[ExecutionContext]=None,
+                   frame_processor:Optional[FrameProcessor]=None,
+                   **options) -> Result:
+    proc = create_image_processor(_camera, context=context, frame_processor=frame_processor, **options)
     return proc.run()
 
 
@@ -128,17 +154,17 @@ class ImageProcessor(AbstractExecution):
     def __init__(self, capture:ImageCapture, options:ImageProcessorOptions,
                  *,
                  context:Optional[ExecutionContext]=None,
-                 frame_processor:Optional[FrameProcessor]=None,
-                 frame_updaters:list[FrameUpdater]=[]) -> None:
+                 frame_processor:Optional[FrameProcessor]=None) -> None:
         super().__init__(context=context)
         
         self.capture = capture
         
-        self.clean_frame_readers:list[FrameReader] = options.get('clean_frame_readers', [])
-        self.frame_updaters = frame_updaters
-        self.suffix_frame_readers:list[FrameReader] = options.get('suffix_frame_readers', [])
         self.frame_processor:Optional[FrameProcessor] = frame_processor
+        self.clean_frame_readers:list[FrameReader] = []
+        self.frame_updaters:list[FrameUpdater] = []
+        self.final_frame_readers:list[FrameReader] = []
         self.fps_measured = 0.0
+        self.is_drawing = False
         self.logger = logging.getLogger('dna.image_processor')
         
         self.show_size = self.__get_show_size(options)
@@ -160,8 +186,8 @@ class ImageProcessor(AbstractExecution):
     def add_frame_updater(self, frame_updater:FrameUpdater) -> None:
         self.frame_updaters.append(frame_updater)
 
-    def add_suffix_frame_reader(self, frame_reader:FrameReader) -> None:
-        self.suffix_frame_readers.append(frame_reader)
+    def add_final_frame_reader(self, frame_reader:FrameReader) -> None:
+        self.final_frame_readers.append(frame_reader)
     
     def run_work(self) -> Result:
         started_ms = utc_now_millis()
@@ -171,10 +197,10 @@ class ImageProcessor(AbstractExecution):
             
         with self.capture:
             if self.show_processor:
-                self.suffix_frame_readers.append(self.show_processor)
+                self.final_frame_readers.append(self.show_processor)
             
             # 등록된 모든 frame 처리기를 초기화시킨다.
-            for proc in [*self.clean_frame_readers, *self.frame_updaters, *self.suffix_frame_readers]:
+            for proc in [*self.clean_frame_readers, *self.frame_updaters, *self.final_frame_readers]:
                 proc.open(self)
             
             try:
@@ -200,7 +226,7 @@ class ImageProcessor(AbstractExecution):
                 self.logger.error(e, exc_info=True)
             finally:
                 # 등록된 모든 frame 처리기를 종료화시킨다.
-                for proc in [*self.clean_frame_readers, *self.frame_updaters, *self.suffix_frame_readers]:
+                for proc in [*self.clean_frame_readers, *self.frame_updaters, *self.final_frame_readers]:
                     with suppress(Exception): proc.close()
                     
         return Result(elapsed_ms=utc_now_millis() - started_ms,
@@ -222,7 +248,7 @@ class ImageProcessor(AbstractExecution):
         for updater in self.frame_updaters:
             frame = updater.update(frame)
             
-        for reader in self.suffix_frame_readers:
+        for reader in self.final_frame_readers:
             reader.read(frame)
             
     def __get_show_size(self, options:ImageProcessorOptions) -> Optional[Size2di]:
@@ -231,7 +257,7 @@ class ImageProcessor(AbstractExecution):
                 return self.capture.image_size if show else None
             else:
                 sz = Size2di.from_expr(show)
-                if sz.tuple() == (0,0):
+                if sz == _DEFAULT_WINDOW_SIZE:
                     sz = self.capture.image_size
                 return sz
         return parse_show_option(options.get('show', False))
@@ -239,7 +265,7 @@ class ImageProcessor(AbstractExecution):
     def __set_show_title(self, options:ImageProcessorOptions) -> None:
         output_video = options.get('output_video')
         title = options.get('title')
-        self.is_drawing:bool = self.show_size is not None or output_video is not None
+        self.is_drawing = self.show_size is not None or output_video is not None
         if self.is_drawing and title:
             specs:set[str] = set(title.split('+'))
             self.frame_updaters.append(DrawFrameTitle(specs, bg_color=color.WHITE))
@@ -256,7 +282,7 @@ class ImageProcessor(AbstractExecution):
                 from .ffmpeg_writer import FFMPEGWriteProcessor
                 write_processor = FFMPEGWriteProcessor(output_video, crf=crf,
                                                        logger=sub_logger(self.logger, 'image_writer'))
-            self.suffix_frame_readers.append(write_processor)
+            self.final_frame_readers.append(write_processor)
             
     def __set_show_frame(self, options:ImageProcessorOptions) -> None:
         self.show_processor:Optional[ShowFrame] = None
@@ -264,13 +290,12 @@ class ImageProcessor(AbstractExecution):
             # 여기서 'show_processor'를 생성만 하고, 실제 등록은
             # 'run_work()' 메소드 수행 시점에서 추가시킨다.
             self.show_processor = ShowFrame(window_name=f'camera={self.capture.camera.uri}',
-                                            window_size=self.show_size,
                                             logger=sub_logger(self.logger, 'show_frame'))
     
     def __set_progress(self, options:ImageProcessorOptions) -> None:
         if options.get('progress', False):
-            # 카메라 객체에 'begin_frame' 속성과 'end_frame' 속성이 존재하는 경우에만 ShowProgress processor를 추가한다.
-            self.suffix_frame_readers.append(ShowProgress())
+            # 카메??객체??'begin_frame' ?�성�?'end_frame' ?�성??존재?�는 경우?�만 ShowProgress processor�?추�??�다.
+            self.final_frame_readers.append(ShowProgress())
 
 class ShowProgress(FrameReader):
     __slots__ = ( 'last_frame_index', )
@@ -334,24 +359,25 @@ class DrawFrameTitle(FrameUpdater):
         return replace(frame, image=convas)
 
 
-_NULL_WINDOW_SIZE = (0, 0)
 class ShowFrame(FrameReader):
     _PAUSE_MILLIS = int(timedelta(hours=1).total_seconds() * 1000)
 
     def __init__(self, window_name:str,
                  *,
-                 window_size:Optional[Size2di]=None,
                  logger:Optional[logging.Logger]=None) -> None:
         super().__init__()
         self.window_name = window_name
-        self.window_size:Optional[tuple[int,int]] = window_size.tuple()  if window_size and window_size.tuple() != _NULL_WINDOW_SIZE else None
         self.logger = logger
 
     def open(self, img_proc:ImageProcessor) -> None:
         cv2.namedWindow(self.window_name, cv2.WINDOW_NORMAL)
-        cv2.resizeWindow(self.window_name, img_proc.show_size.tuple())
+        
+        assert img_proc.show_size is not None
+        self.window_size = img_proc.image_size if img_proc.show_size == _DEFAULT_WINDOW_SIZE else img_proc.show_size
+        cv2.resizeWindow(self.window_name, self.window_size)
+        
         if self.logger and self.logger.isEnabledFor(logging.INFO):
-            self.logger.info(f'create window: {self.window_name}, size=({img_proc.show_size.tuple()})')
+            self.logger.info(f'create window: {self.window_name}, size=({self.window_size})')
             
     def close(self) -> None:
         if self.logger and self.logger.isEnabledFor(logging.INFO):

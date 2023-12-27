@@ -7,7 +7,6 @@ from omegaconf import OmegaConf
 from dna import config, initialize_logger
 from dna.node.pika.pika_execution import PikaExecutionFactory, PikaConnector
 from dna.node.pika.pika_execution_server import PikaExecutionServer
-from scripts import update_namespace_with_environ
 
 LOGGER = logging.getLogger('dna.node.pika')
 
@@ -26,7 +25,6 @@ def parse_args():
 def main():
     args, _ = parse_args()
     initialize_logger(args.logger)
-    args = update_namespace_with_environ(args)
     
     connector, request_qname = PikaConnector.parse_url(args.rabbitmq_url)
     fact = PikaExecutionFactory(args=args)

@@ -31,9 +31,14 @@ def run(args):
     # argument에 기술된 conf를 사용하여 configuration 파일을 읽는다.
     conf = config.load(args.conf) if args.conf else OmegaConf.create()
     
-    opts_dict = ChainMap(vars(args), dict(conf.camera))
-    options = ImageProcessorOptions(dict(opts_dict))
-    img_proc = camera.create_image_processor(options)
+    # camera uri를 선택한다.
+    options = dict(ChainMap(vars(args), dict(conf.camera)))
+    camera_uri = options.get('camera', options.get('uri'))
+    if camera_uri is None:
+        raise ValueError(f"camera uri is not specified")
+    
+    # image processor 를 생성한다.
+    img_proc = camera.create_image_processor(camera_uri, **options)
     
     # detector 설정 정보
     detector_uri = args.detector

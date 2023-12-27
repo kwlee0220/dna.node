@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from typing import Optional
 
-from .event_processor import EventProcessor, EventListener
+from .event_processor import EventNodeImpl, EventListener
 from .event_processors import EventRelay
 
 
-class MultiStagePipeline(EventProcessor):
+class MultiStagePipeline(EventNodeImpl):
     def __init__(self) -> None:
         super().__init__()
         
-        self.stages:dict[str,EventProcessor] = dict()
+        self.stages:dict[str,EventNodeImpl] = dict()
         self.output = EventRelay(self)
 
     def close(self) -> None:
@@ -18,7 +18,7 @@ class MultiStagePipeline(EventProcessor):
             stage.close()
         super().close()
 
-    def add_stage(self, name:str, proc:EventProcessor) -> None:
+    def add_stage(self, name:str, proc:EventNodeImpl) -> None:
         if len(self.stages) > 0:
             # 이전 마지막 stage에서 본 listener를 떼고, 새로 추가된 processor에 등록시킨다.
             last_stage_name = list(self.stages)[-1]

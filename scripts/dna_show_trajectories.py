@@ -8,8 +8,8 @@ from pathlib import Path
 import cv2
 import argparse
 
-from dna import Frame, Image, Point, Size2d, color, Trajectory, config
-from dna.camera import ImageCapture, create_camera, OpenCvVideoWriter
+from dna import Point, Size2d, color, Trajectory, config
+from dna.camera import Image, Frame, ImageCapture, create_camera, OpenCvVideoWriter
 from dna.event import NodeTrack, read_json_event_file
 from dna.node.world_coord_localizer import WorldCoordinateLocalizer
 from dna.support import iterables

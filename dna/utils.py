@@ -1,18 +1,12 @@
 from __future__ import annotations
 
 
-from typing import Any, Optional, Iterable, Iterator, Union, TypeVar
+from typing import Optional, TypeVar
 from collections.abc import Callable
 import logging
 
-import time
 from datetime import datetime, timezone
 from pathlib import Path
-
-from dna import Point
-from .color import BGR
-
-T = TypeVar("T")
 
 
 def datetime2utc(dt: datetime) -> int:
@@ -102,55 +96,8 @@ def has_method(obj, name:str) -> bool:
 
 
 T = TypeVar("T")
-def get_or_else(value:T, else_value:Union[T,Callable[[],T]]) -> T:
+def get_or_else(value:T, else_value:T|Callable[[],T]) -> T:
     if value:
         return value
     else:
         return else_value() if callable(else_value) else else_value
-
-def try_supply(supply:Callable[[],T], else_value:T|Callable[[],T]) -> T:
-    try:
-        return supply()
-    except Exception:
-        if isinstance(else_value, Callable):
-            return else_value()
-        else:
-            return else_value
-
-
-def detect_outliers(values:list[T], weight:float=1.5, *,
-                    key:Optional[Callable[[T],float]]=None) -> tuple[list[T],list[T]]:
-    import numpy as np
-    
-    keys = [key(v) for v in values] if key else values
-    
-    v25, v75 = np.percentile(keys, [25, 75])    # type: ignore
-    iqr = v75 - v25
-    step = weight * iqr
-    lowest, highest = v25 - step, v75 + step
-    
-    low_outlier_idxes = [i for i, k in enumerate(keys) if k < lowest]
-    high_outlier_idxes = [i for i, k in enumerate(keys) if k > highest]
-    return [values[i] for i in low_outlier_idxes], [values[i] for i in high_outlier_idxes]
-
-
-class TimestampSynchronizer(Iterable[float]):
-    class Synchronizing(Iterator[float]):
-        def __init__(self, ts_iter:Iterator[float]) -> None:
-            self._time_iter = ts_iter
-            self._first_ts = next(ts_iter)
-            self._start_time = utc_now_seconds()
-        
-        def __next__(self) -> float:
-            next_ts = next(self._time_iter)
-            ts_delta = utc_now_seconds() - self._start_time
-            delay = (next_ts - self._first_ts) - ts_delta - 0.02
-            if delay > 0:
-                time.sleep(delay)
-            return next_ts
-    
-    def __init__(self, ts_iterable:Iterable[Any], keyer:Optional[Callable[[Any],float]]=None) -> None:
-        self.ts_list = [float(keyer(ts)) for ts in ts_iterable] if keyer else [float(ts) for ts in ts_iterable]
-        
-    def __iter__(self) -> Synchronizing:
-        return TimestampSynchronizer.Synchronizing(iter(self.ts_list))

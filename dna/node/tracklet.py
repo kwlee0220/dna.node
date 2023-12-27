@@ -5,7 +5,7 @@ from collections.abc import Generator
 
 from dna import TrackId
 from dna.track import TrackState
-from dna.event import NodeTrack
+from .node_track import NodeTrack
 
 
 class Tracklet:

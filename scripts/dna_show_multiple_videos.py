@@ -5,9 +5,9 @@ import argparse
 import cv2
 import numpy as np
 
-from dna import initialize_logger, Size2d, color, Frame, Image, Box, Point
+from dna import initialize_logger, Size2d, color, Box, Point
 from dna.support import plot_utils
-from dna.camera import Camera, ImageCapture, create_camera
+from dna.camera import Frame, Image, Camera, ImageCapture, create_camera
 from dna.camera.opencv_video_writer import OpenCvVideoWriter
 from dna.camera.utils import multi_camera_context
 

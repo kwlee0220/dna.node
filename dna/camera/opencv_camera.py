@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import NewType, Iterator, Optional, Any
+from typing import Optional, Any
 
 import cv2
 
-from dna import Size2di
-from dna.utils import try_supply
-from .types import Camera, Frame, ImageCapture, Image, CameraOptions
+from ..size2di import Size2di
+from .types import Camera, Image, Frame, CameraOptions
 from .utils import SyncableImageCapture
 
 
@@ -35,10 +34,10 @@ def _set_frame_index(cap:cv2.VideoCapture, index:int) -> None:
 class OpenCvCamera(Camera):
     __slot__ = ( '__uri' '__image_size', '__fps', '__sync', '__init_ts_expr')
     
-    def __init__(self, uri:str, options:CameraOptions):
+    def __init__(self, camera_uri:str, options:CameraOptions):
         super().__init__()
 
-        self.__uri = uri
+        self.__uri = camera_uri
         self.__image_size:Optional[Size2di] = options.get('image_size')
         self.__fps:Optional[int] = options.get('fps')
         self.__sync:bool = options.get('sync', True)

@@ -33,16 +33,22 @@ def run(args):
     # argument에 기술된 conf를 사용하여 configuration 파일을 읽는다.
     conf = config.load(args.conf) if args.conf else OmegaConf.create()
     
+    # tracking pipeline을 생성한다.
     tracker_conf = config.get_or_insert_empty(conf, 'tracker')
     config.update_values(tracker_conf, args, 'output')
     tracking_pipeline = TrackingPipeline.load(tracker_conf)
     
-    opts_dict = ChainMap(vars(args), dict(conf.camera))
-    options = ImageProcessorOptions(dict(opts_dict))
-    img_proc = camera.create_image_processor(options, frame_processor=tracking_pipeline)
+    # camera uri를 선택한다.
+    options = dict(ChainMap(vars(args), dict(conf.camera)))
+    camera_uri = options.get('camera', options.get('uri'))
+    if camera_uri is None:
+        raise ValueError(f"camera uri is not specified")
+    
+    # image processor 를 생성한다.
+    img_proc = camera.create_image_processor(camera_uri, frame_processor=tracking_pipeline,
+                                             **options)
     if tracking_pipeline.info_drawer:
         img_proc.add_frame_updater(tracking_pipeline.info_drawer)
-
     result = img_proc.run()
     print(result)
     

@@ -4,14 +4,15 @@ from typing import Optional
 from dataclasses import dataclass, field
 
 import numpy as np
+from kafka.consumer.fetcher import ConsumerRecord
 
-from dna import ByteString, NodeId, TrackId, TrackletId
-from .types import KafkaEvent
-from .proto.reid_feature_pb2 import TrackFeatureProto
+from dna import KeyValue, NodeId, TrackId, TrackletId, BytesSerDeable, BytesSerializer, BytesDeerializer
+from dna.event import KafkaEvent
+from dna.event.proto.reid_feature_pb2 import TrackFeatureProto   # type: ignore
 
 
 @dataclass(frozen=True, eq=True, order=False, repr=False)   # slots=True
-class TrackFeature(KafkaEvent):
+class TrackFeature(KafkaEvent,BytesSerDeable):
     node_id: NodeId     # node id
     track_id: TrackId   # tracking object id
     frame_index: int
@@ -27,11 +28,25 @@ class TrackFeature(KafkaEvent):
     
     def is_deleted(self) -> bool:
         return self.feature is None
+        
+    def to_kafka_record(self) -> KeyValue[bytes, bytes]:
+        return KeyValue(key=self.key().encode('utf-8'), value=self.to_bytes())
+    @staticmethod
+    def from_kafka_record(record:ConsumerRecord) -> TrackFeature:
+        return TrackFeature.from_bytes(record.value)
+    
+    @staticmethod
+    def bytes_serializer() -> BytesSerializer[TrackFeature]:
+        return lambda tfeat: tfeat.to_bytes()
+    @staticmethod
+    def bytes_deserializer() -> BytesDeerializer[TrackFeature]:
+        return lambda bytes: TrackFeature.from_bytes(bytes)
 
     def serialize(self) -> bytes:
         return self.to_bytes()
 
-    def deserialize(binary_data:ByteString) -> TrackFeature:
+    @classmethod
+    def deserialize(cls, binary_data:bytes) -> TrackFeature:
         return TrackFeature.from_bytes(binary_data)
 
     def to_bytes(self) -> bytes:

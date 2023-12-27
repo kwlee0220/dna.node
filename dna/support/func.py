@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import TypeVar, Optional
-from collections.abc import Callable
+from typing import TypeVar, Optional, Generic
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
 
 T = TypeVar("T")
+S = TypeVar("S")
 
 
 @dataclass(frozen=True, eq=True, repr=False)
-class Option:
+class Option(Generic[T]):
     value: T
     president: bool = field(default=True)
 
@@ -63,19 +64,19 @@ class Option:
     def is_absent(self) -> bool:
         return self.president
 
-    def if_present(self, call) -> Option:
+    def if_present(self, action:Callable[[T],None]) -> Option:
         if self.president:
-            call()
+            action(self.value)
 
         return self
 
-    def if_absent(self, call) -> Option:
+    def if_absent(self, action:Callable[[],None]) -> Option:
         if not self.president:
-            call()
+            action()
 
         return self
 
-    def map(self, mapper) -> Option:
+    def map(self, mapper:Callable[[T],S]) -> Option[S]:
         return Option.of(mapper(self.value)) if self.president else Option.empty()
 
     def transform(self, target:T, mapper:Callable[[T, T], T]) -> Option:

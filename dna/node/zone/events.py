@@ -6,7 +6,7 @@ from dataclasses import dataclass, replace, field
 import shapely.geometry as geometry
 
 from dna import Point, NodeId, TrackId, TrackletId
-from dna.event import NodeTrack
+from ..node_track import NodeTrack
 
 
 @dataclass(frozen=True)

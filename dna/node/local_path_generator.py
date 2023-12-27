@@ -8,7 +8,7 @@ from dna import Point
 from dna.color import BGR
 from dna.track.track_state import TrackState
 from ..event.local_path_event import LocalPathEvent
-from dna.event import NodeTrack, EventProcessor
+from dna.event import NodeTrack, EventNodeImpl
 
 class Session:
     def __init__(self, node_id:str, luid:str) -> None:
@@ -42,11 +42,11 @@ class Session:
                               first_frame=self.first_frame, last_frame=self.last_frame,
                               continuation=cont)
 
-class LocalPathGenerator(EventProcessor):
+class LocalPathGenerator(EventNodeImpl):
     MAX_PATH_LENGTH = 100
 
     def __init__(self, conf:OmegaConf) -> None:
-        EventProcessor.__init__(self)
+        EventNodeImpl.__init__(self)
 
         self.max_path_length = conf.get('max_path_length', LocalPathGenerator.MAX_PATH_LENGTH)
         self.sessions = dict()
@@ -57,7 +57,7 @@ class LocalPathGenerator(EventProcessor):
         # build local paths from the unfinished sessions and upload them
         for session in self.sessions.values():
             pev = session.build_local_path(cont=False)
-            self._publish_event(pev)
+            self.publish_event(pev)
         self.sessions.clear()
 
 
@@ -71,11 +71,11 @@ class LocalPathGenerator(EventProcessor):
             self.sessions.pop(ev.track_id, None)
             if session.length > 0:
                 pev = session.build_local_path(length=session.length, cont=False)
-                self._publish_event(pev)
+                self.publish_event(pev)
         else:
             if session.length >= self.max_path_length + 10:
                 pev = session.build_local_path(length=self.max_path_length, cont=True)
-                self._publish_event(pev)
+                self.publish_event(pev)
 
                 # refresh the current session
                 # session = Session(ev.node_id, ev.luid)

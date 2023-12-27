@@ -1,31 +1,23 @@
 from __future__ import annotations
 
 from typing import Any
-import sys
-from contextlib import closing
 import argparse
-from omegaconf import OmegaConf
-from omegaconf.dictconfig import DictConfig
 
-from dna import config, initialize_logger, camera
-from dna.camera import ImageProcessorOptions
+from dna import initialize_logger, camera
 from scripts.utils import add_image_processor_arguments
 
 
 def define_args(parser):
-    parser.add_argument("uri", metavar="uri", help="target camera uri")
+    parser.add_argument("camera_uri", metavar="uri", help="target camera uri")
     add_image_processor_arguments(parser)
     
-    parser.add_argument("--hide", action='store_true')
-    parser.add_argument("--nosync", action='store_true')
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
 
 
-def run(args):
+def run(args:argparse.Namespace):
     initialize_logger(args.logger)
     
-    options = ImageProcessorOptions(vars(args))
-    result = camera.process_images(options)
+    result = camera.process_images(args.camera_uri, **vars(args))
     print(result)
     
 def main():

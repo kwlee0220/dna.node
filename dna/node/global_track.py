@@ -1,10 +1,12 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Any
 from dataclasses import dataclass, field
 import json
 
-from dna import ByteString, Point
+from kafka.consumer.fetcher import ConsumerRecord
+
+from dna import KeyValue, Point, TrackletId, BytesSerDeable, BytesSerializer, BytesDeerializer
 from dna.event import KafkaEvent
 
 
@@ -27,7 +29,7 @@ class LocalTrack:
                             location=Point(json_obj.get('location')),
                             ts=json_obj['ts'])
 
-    def to_json_object(self) -> str:
+    def to_json_object(self) -> dict[str,object]:
         return {
             'node': self.node,
             'track_id': self.track_id,
@@ -47,7 +49,7 @@ class GlobalTrackType(Enum):
     DELETED = 'DELETED'
 
 @dataclass(frozen=True, eq=False, order=False, repr=False)      # slots=True
-class GlobalTrack(KafkaEvent):
+class GlobalTrack(KafkaEvent,BytesSerDeable):
     id: str                                                     # id
     state: GlobalTrackType                                      # state
     overlap_area: Optional[str] = field(hash=False)             # overlap area (nullable)
@@ -69,7 +71,21 @@ class GlobalTrack(KafkaEvent):
         return self.overlap_area != None
     
     def is_same_track(self, ltrack:LocalTrack) -> bool:
-        return self.node == ltrack.node and self.track_id == ltrack.track_id
+        return self.key == ltrack.key
+        
+    def to_kafka_record(self) -> KeyValue[bytes, bytes]:
+        return KeyValue(key=self.key().encode('utf-8'),
+                        value=self.to_json().encode('utf-8'))
+    @staticmethod
+    def from_kafka_record(record:ConsumerRecord) -> GlobalTrack:
+        return GlobalTrack.from_json(record.value.decode('utf-8'))
+    
+    @staticmethod
+    def bytes_serializer() -> BytesSerializer[GlobalTrack]:
+        return lambda data: data.to_json().encode('utf-8')
+    @staticmethod
+    def bytes_deserializer() -> BytesDeerializer[GlobalTrack]:
+        return lambda data: GlobalTrack.from_json(data.decode('utf-8'))
 
     @staticmethod
     def from_json(json_str:str) -> GlobalTrack:
@@ -89,7 +105,7 @@ class GlobalTrack(KafkaEvent):
                             first_ts=json_obj['first_ts'], ts=json_obj['ts'])
 
     def to_json(self) -> str:
-        serialized = {
+        serialized:dict[str,Any] = {
             'id': self.id,
             'state': self.state.value,
         }
@@ -107,8 +123,8 @@ class GlobalTrack(KafkaEvent):
     def serialize(self) -> bytes:
         return self.to_json().encode('utf-8')
 
-    @staticmethod
-    def deserialize(serialized:ByteString) -> GlobalTrack:
+    @classmethod
+    def deserialize(cls, serialized:bytes) -> GlobalTrack:
         return GlobalTrack.from_json(serialized.decode('utf-8'))
     
     def __lt__(self, other:GlobalTrack) -> bool:

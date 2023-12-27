@@ -1,10 +1,11 @@
 from dataclasses import dataclass, field
 import json
 
+from dna import TrackletId
 from dna.event import KafkaEvent
 
 
-@dataclass(frozen=True, eq=True, order=True)    # slots=True
+@dataclass(frozen=True, eq=True, order=True, slots=True)
 class LocalPathEvent(KafkaEvent):
     node_id: str
     track_id: str
@@ -15,9 +16,9 @@ class LocalPathEvent(KafkaEvent):
     continuation:bool = field(compare=False)
 
     def key(self) -> str:
-        return self.node_id.encode('utf-8')
+        return str(TrackletId(self.node_id, self.track_id))
     
-    def serialize(self) -> str:
+    def serialize(self) -> bytes:
         serialized = { 'node_id': self.node_id, 'track_id': self.track_id,
                         'camera_path': self.camera_path, 'world_path': self.world_path,
                         'first_frame': self.first_frame, 'last_frame': self.last_frame,

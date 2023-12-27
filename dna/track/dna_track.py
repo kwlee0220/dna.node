@@ -6,15 +6,15 @@ import numpy as np
 import cv2
 
 import dna
-from dna import Box, Size2d, Image, BGR, Point
-from dna.camera import Frame
+from dna import Box, Size2d, BGR, Point
+from dna.camera import Image, Frame
 from dna.detect import Detection
 from dna.support import plot_utils
 from dna.track import TrackState
 from dna.track.types import ObjectTrack
 from .kalman_filter import KalmanFilter
 from .dna_track_params import DNATrackParams
-from dna.event.node_track import NodeTrack
+from dna.node.node_track import NodeTrack
 
 
 def to_tlbr(xyah:np.ndarray) -> Box:

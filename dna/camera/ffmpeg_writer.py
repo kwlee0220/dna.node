@@ -7,8 +7,8 @@ from contextlib import suppress
 import logging
 import ffmpeg
 
-from dna import Image, Size2di
-from dna.camera import Frame, VideoWriter, CRF
+from dna import Size2di
+from dna.camera import Image, Frame, VideoWriter, CRF
 from .image_processor import FrameReader, ImageProcessor
 
                         

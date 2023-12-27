@@ -10,8 +10,8 @@ import numpy as np
 import cv2
 from omegaconf.omegaconf import OmegaConf
 
-from dna import Image, BGR, color
-from dna.camera import Frame
+from dna import BGR, color
+from dna.camera import Image, Frame
 from dna.support import plot_utils
 
 FILE = Path(__file__).absolute()
@@ -28,7 +28,7 @@ from .feature_extractor import DeepSORTMetricExtractor
 from .cnu_track.qdtrack_feature_extractor import QDTrackMetricExtractor
 from .dna_track import DNATrack
 from .tracker import Tracker
-from dna.event.node_track import NodeTrack
+from dna.node.node_track import NodeTrack
 
 import logging
 LOGGER = logging.getLogger('dna.tracker')

@@ -5,7 +5,8 @@ from typing import Optional
 import numpy as np
 import cv2
 
-from dna import BGR, Box, Size2d, Image, Point
+from dna import BGR, Box, Size2d, Point
+from dna.camera import Image
 from dna.support import plot_utils
 
 
