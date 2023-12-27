@@ -8,7 +8,7 @@ import json
 import numpy as np
 from kafka.consumer.fetcher import ConsumerRecord
 
-from dna import KeyValue, Box, Point, NodeId, TrackId, TrackletId, BytesSerDeable, BytesSerializer, BytesDeerializer
+from dna import KeyValue, Box, Point, NodeId, TrackId, TrackletId, BytesSerDeable, BytesSerializer, BytesDeserializer
 from dna.event import KafkaEvent
 from dna.track.track_state import TrackState
 # from dna.node.zone.types import ZoneExpression
@@ -131,14 +131,14 @@ class NodeTrack(KafkaEvent,BytesSerDeable):
     def bytes_serializer() -> BytesSerializer[NodeTrack]:
         return lambda data: data.to_json().encode('utf-8')
     @staticmethod
-    def bytes_deserializer() -> BytesDeerializer[NodeTrack]:
+    def bytes_deserializer() -> BytesDeserializer[NodeTrack]:
         return lambda data: NodeTrack.from_json(data.decode('utf-8'))
     
     @staticmethod
     def pb_serializer() -> BytesSerializer[NodeTrack]:
         return lambda data: data.to_pb_bytes()
     @staticmethod
-    def pb_deserializer() -> BytesDeerializer[NodeTrack]:
+    def pb_deserializer() -> BytesDeserializer[NodeTrack]:
         return lambda data: NodeTrack.from_pb_bytes(data)
 
     def updated(self, **kwargs:object) -> NodeTrack:

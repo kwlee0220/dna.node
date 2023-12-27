@@ -4,7 +4,7 @@ from typing import Optional
 from collections.abc import Callable
 from enum import Enum
 
-from dna import BytesSerializer, BytesDeerializer, BytesSerDeable
+from dna import BytesSerializer, BytesDeserializer, BytesSerDeable, JsonSerializer, JsonDeserializer
 from dna.event import KafkaEvent
 from .global_track import GlobalTrack
 from .node_track import NodeTrack
@@ -24,8 +24,27 @@ class NodeEventType(Enum):
     def bytes_serializer(self) -> BytesSerializer:
         return self.event_type.serializer() # type: ignore
 
-    def bytes_deserializer(self) -> BytesDeerializer:
+    def bytes_deserializer(self) -> BytesDeserializer:
         return self.event_type.deserializer()   # type: ignore
+
+    def json_serializer(self) -> JsonSerializer:
+        return lambda data: data.to_json()
+
+    def json_deserializer(self) -> JsonDeserializer:
+        return lambda bytes: self.event_type.from_json(bytes)   # type: ignore
+    
+    @classmethod
+    def from_type_str(cls, type_str:str) -> NodeEventType:
+        type_str = type_str.replace('_', '').replace('-','').lower()
+        match type_str:
+            case 'nodetrack':
+                return NodeEventType.NODE_TRACK
+            case 'globaltrack':
+                return NodeEventType.FEATURE
+            case 'trackfeature':
+                return NodeEventType.GLOBAL_TRACK
+            case _:
+                raise ValueError('unknown event-type: {type_str}')
 
     @classmethod
     def from_topic(cls, topic:str) -> NodeEventType:

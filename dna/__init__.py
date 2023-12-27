@@ -2,7 +2,7 @@ from .size2d import Size2d
 from .size2di import Size2di
 from .types import Named, KeyValue, Box, Point, InvalidStateError, NodeId, TrackId, TrackletId, Trajectory
 from .types import BytesSerDeable
-from .types import BytesSerializer, BytesDeerializer, JsonSerializer, JsonDeserializer, JsonObjectSerializer, JsonObjectDeserializer
+from .types import BytesSerializer, BytesDeserializer, JsonSerializer, JsonDeserializer, JsonObjectSerializer, JsonObjectDeserializer
 from .color import BGR
 from .utils import initialize_logger, sub_logger
 

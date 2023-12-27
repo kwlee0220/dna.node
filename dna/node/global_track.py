@@ -6,7 +6,7 @@ import json
 
 from kafka.consumer.fetcher import ConsumerRecord
 
-from dna import KeyValue, Point, TrackletId, BytesSerDeable, BytesSerializer, BytesDeerializer
+from dna import KeyValue, Point, TrackletId, BytesSerDeable, BytesSerializer, BytesDeserializer
 from dna.event import KafkaEvent
 
 
@@ -84,7 +84,7 @@ class GlobalTrack(KafkaEvent,BytesSerDeable):
     def bytes_serializer() -> BytesSerializer[GlobalTrack]:
         return lambda data: data.to_json().encode('utf-8')
     @staticmethod
-    def bytes_deserializer() -> BytesDeerializer[GlobalTrack]:
+    def bytes_deserializer() -> BytesDeserializer[GlobalTrack]:
         return lambda data: GlobalTrack.from_json(data.decode('utf-8'))
 
     @staticmethod

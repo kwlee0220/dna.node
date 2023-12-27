@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 import numpy as np
 from kafka.consumer.fetcher import ConsumerRecord
 
-from dna import KeyValue, NodeId, TrackId, TrackletId, BytesSerDeable, BytesSerializer, BytesDeerializer
+from dna import KeyValue, NodeId, TrackId, TrackletId, BytesSerDeable, BytesSerializer, BytesDeserializer
 from dna.event import KafkaEvent
 from dna.event.proto.reid_feature_pb2 import TrackFeatureProto   # type: ignore
 
@@ -39,7 +39,7 @@ class TrackFeature(KafkaEvent,BytesSerDeable):
     def bytes_serializer() -> BytesSerializer[TrackFeature]:
         return lambda tfeat: tfeat.to_bytes()
     @staticmethod
-    def bytes_deserializer() -> BytesDeerializer[TrackFeature]:
+    def bytes_deserializer() -> BytesDeserializer[TrackFeature]:
         return lambda bytes: TrackFeature.from_bytes(bytes)
 
     def serialize(self) -> bytes:

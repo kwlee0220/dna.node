@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from typing import Optional
-from omegaconf import OmegaConf
+from omegaconf.dictconfig import DictConfig
 import numpy as np
 
 from dna import color, BGR
@@ -115,7 +115,7 @@ class TrackingPipeline(FrameProcessor):
             self.info_drawer = None
 
     @staticmethod
-    def load(tracker_conf:OmegaConf) -> TrackingPipeline:
+    def load(tracker_conf:DictConfig) -> TrackingPipeline:
         from .dna_tracker import DNATracker
         tracker = DNATracker.load(tracker_conf)
         
@@ -138,7 +138,7 @@ class TrackingPipeline(FrameProcessor):
     def add_track_processor(self, proc:TrackProcessor) -> None:
         self._track_processors.append(proc)
 
-    def process(self, frame:Frame) -> Optional[Frame]:
+    def process(self, frame:Frame) -> Frame:
         tracks = self.tracker.track(frame)
 
         for processor in self._track_processors:

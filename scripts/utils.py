@@ -50,4 +50,4 @@ def add_kafka_consumer_arguments(parser:argparse.ArgumentParser) -> None:
                         help="Kafka poll timeout in milli-seconds")
     parser.add_argument("--initial_poll_timeout", metavar="milli-seconds", type=int, default=5000,
                         help="initial Kafka poll timeout in milli-seconds")
-    parser.add_argument("--skip_poll_timeout", action='store_true')
+    parser.add_argument("--drop_poll_timeout", action='store_true')

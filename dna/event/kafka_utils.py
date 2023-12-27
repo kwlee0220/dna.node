@@ -51,7 +51,7 @@ def read_topics(consumer:KafkaConsumer, **options) -> Generator[KafkaPollData, b
     poll_timeout = options.get('poll_timeout', 1000)
     initial_poll_timeout = options.get('initial_poll_timeout', poll_timeout)
     close_on_return = options.get('close_on_return', False)
-    skip_poll_timeout = options.get('skip_poll_timeout', False)
+    drop_poll_timeout = options.get('drop_poll_timeout', False)
     
     poll_args = { k:v for k, v in options.items() if k in KAFKA_POLL_ARG_NAMES }
     poll_args['timeout_ms'] = initial_poll_timeout
@@ -72,7 +72,7 @@ def read_topics(consumer:KafkaConsumer, **options) -> Generator[KafkaPollData, b
                 if timeout_elapsed >= timeout:
                     return
                 
-                if not skip_poll_timeout:
+                if not drop_poll_timeout:
                     stop:bool = yield PollTimeout(elapsed_ms=timeout_elapsed)
                     if stop: return
     finally:

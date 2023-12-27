@@ -8,7 +8,7 @@ from enum import Enum
 
 import numpy as np
 import cv2
-from omegaconf.omegaconf import OmegaConf
+from omegaconf.dictconfig import DictConfig
 
 from dna import BGR, color
 from dna.camera import Image, Frame
@@ -60,7 +60,7 @@ def load_feature_extractor(model_file:str=DSORT_REID_MODEL, normalize:bool=False
 
 _DEEP_SORT_REID_MODEL = 'models/deepsort/model640.pt'
 class DNATracker(ObjectTracker):
-    def __init__(self, detector:ObjectDetector, tracker_conf:OmegaConf, /,
+    def __init__(self, detector:ObjectDetector, tracker_conf:DictConfig, /,
                  feature_extractor:Optional[MetricExtractor]=None) -> None:
         super().__init__()
 
@@ -143,7 +143,7 @@ class DNATracker(ObjectTracker):
         # Exit-zone에 포함되었다고 여기서 버리면, association시 다른 detection과 binding될 수 있기 때문에
         # 여기서는 해당 detection에 exit-zone id만 부여하고 나중에 처리한다.
         # 다만, exit-zone에 있는 모든 weak detection들은 무시한다
-        def is_weak_exit_zone_detection(det:Detection) -> Detection:
+        def is_weak_exit_zone_detection(det:Detection) -> bool:
             det.exit_zone = self.params.find_exit_zone(det.bbox)
             if det.exit_zone < 0 or self.params.is_strong_detection(det):
                 return False
@@ -217,7 +217,7 @@ class DNATracker(ObjectTracker):
         return convas
     
     @staticmethod
-    def load(tracker_conf: OmegaConf):
+    def load(tracker_conf: DictConfig):
         from dna.detect.utils import load_object_detector
 
         detector_uri = tracker_conf.get("detector", dna.DEFAULT_DETECTOR_URI)

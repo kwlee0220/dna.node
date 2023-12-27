@@ -78,9 +78,8 @@ class TrailCollector(TrackProcessor):
 
     def process_tracks(self, tracker:ObjectTracker, frame:Frame, tracks:list[ObjectTrack]) -> None:      
         for track in tracks:
-            if track.state == TrackState.Confirmed  \
-                or track.state == TrackState.TemporarilyLost    \
-                or track.state == TrackState.Tentative:
-                self.trails[track.id].append(track)
-            elif track.state == TrackState.Deleted:
-                self.trails.pop(track.id, None)
+            match track.state:
+                case TrackState.Confirmed | TrackState.TemporarilyLost | TrackState.Tentative:
+                    self.trails[track.id].append(track)
+                case TrackState.Deleted:
+                    self.trails.pop(track.id, None)

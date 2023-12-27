@@ -44,7 +44,7 @@ class KeyValue(Generic[K,T]):
 
 
 BytesSerializer:TypeAlias = Callable[[T], bytes]
-BytesDeerializer:TypeAlias = Callable[[bytes], T]
+BytesDeserializer:TypeAlias = Callable[[bytes], T]
 JsonSerializer:TypeAlias = Callable[[T], str]
 JsonDeserializer:TypeAlias = Callable[[str], T]
 JsonObjectSerializer:TypeAlias = Callable[[dict[str,Any]], str]
@@ -59,7 +59,7 @@ class BytesSerializable(ABC,Generic[T]):
 class BytesDeserializable(ABC,Generic[T]):
     @staticmethod
     @abstractmethod
-    def bytes_deserializer() -> BytesDeerializer[T]: pass
+    def bytes_deserializer() -> BytesDeserializer[T]: pass
     
 class BytesSerDeable(BytesSerializable,BytesDeserializable):
     pass

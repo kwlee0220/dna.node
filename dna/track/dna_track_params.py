@@ -6,7 +6,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 import numpy.typing as npt
-from omegaconf.omegaconf import OmegaConf
+from omegaconf import OmegaConf
+from omegaconf.dictconfig import DictConfig
 
 import dna
 from dna import Size2d, Box, config
@@ -20,7 +21,7 @@ class DistanceIoUThreshold:
     iou: float
     
     @staticmethod
-    def from_config(conf:OmegaConf, key:str, default=None) -> DistanceIoUThreshold:
+    def from_config(conf:DictConfig, key:str, default=None) -> DistanceIoUThreshold:
         conf_value = OmegaConf.select(conf, key, default=None)
         if conf_value:
             npa = np.array(conf_value)
@@ -117,7 +118,7 @@ class DNATrackParams:
     def find_blind_zone(self, box:Box) -> int:
         return Zone.find_covering_zone(box.center(), self.blind_zones)
 
-def load_track_params(track_conf:OmegaConf) -> DNATrackParams:
+def load_track_params(track_conf:DictConfig) -> DNATrackParams:
     detection_classes = set(track_conf.get('detection_classes', DEFAULT_DETECTIION_CLASSES))
     detection_confidence = track_conf.get('detection_confidence', DEFAULT_DETECTION_CONFIDENCE)
     detection_min_size = load_size2d(track_conf, 'detection_min_size', None)

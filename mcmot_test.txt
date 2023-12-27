@@ -90,8 +90,8 @@ jarvey build track_features_index --kafka_offset earliest --cleanup --stop_on_ti
 jarvey build node_tracks_index --kafka_offset earliest --cleanup --stop_on_timeout
 jarvey build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_f5.yaml --kafka_offset earliest
 jarvey build global_tracks --config %JARVEY_STREAMS_HOME%/mcmot_configs_f5.yaml --kafka_offset earliest --cleanup --stop_on_timeout
-dna_show_gtracks --show_supports --output_video %OUTPUT%/global_tracks_feature.mp4 --kafka_offset earliest --stop_on_timeout
-dna_export --topic global-tracks --output %OUTPUT%/global_tracks_feature.json --kafka_offset earliest --stop_on_timeout
+dna_show_gtracks --show_supports --output_video %OUTPUT%/global_tracks_feature.mp4 --kafka_offset earliest --timeout 1000
+dna_export --topic global-tracks --output %OUTPUT%/global_tracks_feature.json --kafka_offset earliest --timeout 1000
 
 REM =============================== [Associate tracklets (Feature based stream)] ===============================
 start jarvey build node_tracks_index
