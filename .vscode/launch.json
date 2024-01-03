@@ -183,10 +183,10 @@
             "args": [
                 // "--files", "D:/Dropbox/Temp/TEST/etri_motion.pickle",
                 "--kafka_offset", "earliest",
-                "--topic", "global-tracks",
-                "--type", "global-track",
-                "--timeout", "5000",
-                "--filter", "ev.ts % 2000 == 0",
+                "--topic", "node-tracks",
+                // "--type", "json-event",
+                "--timeout", "1000",
+                // "--filter", "ev.ts % 2000 == 0",
             ],
             "justMyCode": true
         },
@@ -197,7 +197,7 @@
             "args": [
                 "--kafka_offset", "earliest",
                 "--topic", "global-tracks",
-                "--output", "output/global-tracks.json",
+                "--output", "output/output.json",
                 // "--output", "output/global-tracks-running.json",
                 "--timeout", "1000",
             ],

@@ -8,7 +8,7 @@ import json
 import numpy as np
 from kafka.consumer.fetcher import ConsumerRecord
 
-from dna import KeyValue, Box, Point, NodeId, TrackId, TrackletId, BytesSerDeable, BytesSerializer, BytesDeserializer
+from dna import KeyValue, Box, Point, NodeId, TrackId, TrackletId, SerDeable, JsonSerDeable
 from dna.event import KafkaEvent
 from dna.track.track_state import TrackState
 # from dna.node.zone.types import ZoneExpression
@@ -33,7 +33,7 @@ def from_loc_bytes(binary_data:bytes) -> tuple[Point,float]:
 
 
 @dataclass(frozen=True, eq=True, order=False, repr=False, slots=True)
-class NodeTrack(KafkaEvent,BytesSerDeable):
+class NodeTrack(KafkaEvent,SerDeable['NodeTrack'],JsonSerDeable['NodeTrack']):
     node_id: NodeId     # node id
     track_id: TrackId   # tracking object id
     state: TrackState   # tracking state
@@ -82,6 +82,8 @@ class NodeTrack(KafkaEvent,BytesSerDeable):
 
     @classmethod
     def from_json(cls, json_str:str) -> NodeTrack:
+        from dna.node.zone.types import ZoneExpression
+        
         def json_to_box(tlbr_list:Optional[Iterable[float]]) -> Optional[Box]:
             return Box(tlbr_list) if tlbr_list else None
 
@@ -127,19 +129,14 @@ class NodeTrack(KafkaEvent,BytesSerDeable):
         serialized['first_ts'] = self.first_ts
         return json.dumps(serialized, separators=(',', ':'))
     
-    @staticmethod
-    def bytes_serializer() -> BytesSerializer[NodeTrack]:
-        return lambda data: data.to_json().encode('utf-8')
-    @staticmethod
-    def bytes_deserializer() -> BytesDeserializer[NodeTrack]:
-        return lambda data: NodeTrack.from_json(data.decode('utf-8'))
+    # override: Serializable.serialize
+    def serialize(self) -> bytes:
+        return self.to_json().encode('utf-8')
     
+    # override: Deserializable.deserialize
     @staticmethod
-    def pb_serializer() -> BytesSerializer[NodeTrack]:
-        return lambda data: data.to_pb_bytes()
-    @staticmethod
-    def pb_deserializer() -> BytesDeserializer[NodeTrack]:
-        return lambda data: NodeTrack.from_pb_bytes(data)
+    def deserialize(serialized:bytes) -> NodeTrack:
+        return NodeTrack.from_json(serialized.decode('utf-8'))
 
     def updated(self, **kwargs:object) -> NodeTrack:
         fields = asdict(self)

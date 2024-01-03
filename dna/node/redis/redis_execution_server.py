@@ -14,8 +14,8 @@ from omegaconf.dictconfig import DictConfig
 from pathlib import Path
 
 from dna import config, utils, camera
-from dna.camera import FrameProcessor, ImageProcessor, ImageProcessorOptions
-from dna.node.node_processor import NodeTrackEventPipeline
+from dna.camera import FrameProcessor, ImageProcessor, ImageProcessorOptions, create_image_processor
+from ..node_event_pipeline import NodeEventPipeline
 from dna.execution import ExecutionContext, AbstractExecution, ExecutionState
 from dna.support import redis as dna_redis
 from . import Serde, JsonSerde
@@ -139,7 +139,7 @@ class RedisExecutionServer:
                 context.failed(e)
             
     def create_execution(self, context:RedisExecutionContext, request:DictConfig) \
-        -> tuple[ImageProcessor, NodeTrackEventPipeline]:
+        -> tuple[ImageProcessor, NodeEventPipeline]:
         from dna.node.node_processor import build_node_processor
 
         if config.exists(request, 'node'):
@@ -169,8 +169,9 @@ class RedisExecutionServer:
         conf1_dict = dict(config.filter_if(conf, lambda k, v: k != 'id' and not isinstance(v, DictConfig)))
         conf_camera_dict = dict(config.get(conf, key='camera'))
         
-        options = ImageProcessorOptions(dict(ChainMap(req_dict, args_dict, conf_camera_dict, conf1_dict)))
-        img_proc = camera.create_image_processor(options)
+        options = ImageProcessorOptions(**dict(ChainMap(req_dict, args_dict, conf_camera_dict, conf1_dict)))
+        camera_uri:str = options.pop('uri')
+        img_proc = create_image_processor(camera_uri, **options)
         
         _, node_track_pipeline = build_node_processor(img_proc, conf)
         

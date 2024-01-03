@@ -80,8 +80,8 @@ REM =============================== [Associate tracklets (Motion based batch)] =
 dna_replay %OUTPUT%/etri_motion.pickle --progress --max_wait_ms 1000
 jarvey build associations --config %JARVEY_STREAMS_HOME%/mcmot_configs_m.yaml --kafka_offset earliest --cleanup
 jarvey build global_tracks --kafka_offset earliest --cleanup --stop_on_timeout
-dna_show_gtracks --topic global-tracks --show_supports --output_video %OUTPUT%/global_tracks_motion.mp4 --kafka_offset earliest --stop_on_timeout
-dna_export --topic global-tracks --output %OUTPUT%/global_tracks_motion.json --kafka_offset earliest --stop_on_timeout
+dna_show_gtracks --topic global-tracks --show_supports --output_video %OUTPUT%/global_tracks_motion.mp4 --kafka_offset earliest --timeout 1000
+dna_export --topic global-tracks --output %OUTPUT%/global_tracks_motion.json --kafka_offset earliest --timeout 1000
 
 
 REM =============================== [Associate tracklets (Feature based batch)] ===============================

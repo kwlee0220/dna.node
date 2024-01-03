@@ -10,7 +10,7 @@ from dna import config
 from dna.support import iterables
 from dna.event import KafkaEvent, read_pickle_event_file, synchronize_time
 from dna.event.kafka_utils import open_kafka_producer
-from dna.node.node_event_type import NodeEventType
+from dna.node import node_event_type
 
 
 def define_args(parser):
@@ -68,7 +68,7 @@ def run(args):
             events = synchronize_time(events, max_wait_ms=max_wait_ms)
             
         for ev in events:
-            topic = NodeEventType.find_topic(ev)
+            topic = node_event_type.find_node_event_type_by_object(ev).topic
             key, value = ev.to_kafka_record()
             producer.send(topic, value=value, key=key)
             if progress is not None:

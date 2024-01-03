@@ -23,6 +23,9 @@ TrackId:TypeAlias = str
 
 
 T = TypeVar("T")
+T_co = TypeVar("T_co", covariant=True)
+T_contra = TypeVar("T_contra", contravariant=True)
+
 K = TypeVar("K")
 
 @dataclass(frozen=True, unsafe_hash=True, slots=True)
@@ -43,39 +46,37 @@ class KeyValue(Generic[K,T]):
         return iter((self.key, self.value))
 
 
-BytesSerializer:TypeAlias = Callable[[T], bytes]
-BytesDeserializer:TypeAlias = Callable[[bytes], T]
+Serializer:TypeAlias = Callable[[T], bytes]
+Deserializer:TypeAlias = Callable[[bytes], T]
 JsonSerializer:TypeAlias = Callable[[T], str]
 JsonDeserializer:TypeAlias = Callable[[str], T]
 JsonObjectSerializer:TypeAlias = Callable[[dict[str,Any]], str]
 JsonObjectDeserializer:TypeAlias = Callable[[str], dict[str,Any]]
 
 
-class BytesSerializable(ABC,Generic[T]):
+class Serializable(ABC,Generic[T]):
+    @abstractmethod
+    def serialize(self) -> bytes: pass
+    
+class Deserializable(ABC,Generic[T]):
     @staticmethod
     @abstractmethod
-    def bytes_serializer() -> BytesSerializer[T]: pass
+    def deserialize(serialized:bytes) -> T: pass
     
-class BytesDeserializable(ABC,Generic[T]):
-    @staticmethod
-    @abstractmethod
-    def bytes_deserializer() -> BytesDeserializer[T]: pass
-    
-class BytesSerDeable(BytesSerializable,BytesDeserializable):
+class SerDeable(Serializable[T],Deserializable[T]):
     pass
 
 
 class JsonSerializable(ABC,Generic[T]):
-    @staticmethod
     @abstractmethod
-    def json_serializer() -> JsonSerializer[T]: pass
+    def to_json() -> str: pass
     
 class JsonDeserializable(ABC,Generic[T]):
     @staticmethod
     @abstractmethod
-    def json_deserializer() -> JsonDeserializer[T]: pass
+    def from_json(serialized:str) -> T: pass
     
-class JsonSerDeable(JsonSerializable,JsonDeserializable):
+class JsonSerDeable(JsonSerializable[T],JsonDeserializable[T]):
     pass
     
 
@@ -120,20 +121,20 @@ class Point(Sequence[float]):
         self.xy = np.array(xy, dtype=np.float32)
 
     @property
-    def x(self) -> Union[int,float]:
+    def x(self) -> float:
         """Point 객체 좌표의 x축 값.
 
         Returns:
-            Union[int,float]: 좌표의 x축 값.
+            float: 좌표의 x축 값.
         """
         return self.xy[0]
 
     @property
-    def y(self) -> Union[int,float]:
+    def y(self) -> float:
         """Point 객체 좌표의 y축 값.
 
         Returns:
-            Union[int,float]: 좌표의 y축 값.
+            float: 좌표의 y축 값.
         """
         return self.xy[1]
 
@@ -197,7 +198,7 @@ class Point(Sequence[float]):
         return (round(self.x), round(self.y))
     
     def __iter__(self) -> Iterable[float]:
-        return iter(self.xy)
+        return iter((float(self.x), float(self.y)))
     
     def __len__(self) -> int:
         return 2
@@ -227,7 +228,7 @@ class Point(Sequence[float]):
     def __sub__(self, rhs:Size2d|float|Sequence[float]) -> Point: pass
     @overload
     def __sub__(self, rhs:Point) -> Size2d: pass
-    def __sub__(self, rhs) -> Union[Point,Size2d]:
+    def __sub__(self, rhs) -> Point|Size2d:
         if isinstance(rhs, Point):
             return Size2d(self.xy - rhs.xy)
         elif isinstance(rhs, Size2d):
@@ -258,7 +259,7 @@ class Point(Sequence[float]):
             raise ValueError('invalid right-hand-side:', rhs)
     
     def __repr__(self) -> str:
-        if isinstance(self.xy[0], np.int32):
+        if isinstance(self.xy[0], int):
             return '({},{})'.format(*self.xy)
         else:
             return '({:.1f},{:.1f})'.format(*self.xy)
@@ -312,7 +313,7 @@ class Box:
         return Box(tlbr)
 
     @staticmethod
-    def from_size(size:Union[Size2d,npt.ArrayLike]) -> Box:
+    def from_size(size:Size2d|npt.ArrayLike) -> Box:
         """
         Create a box object of the given size.
         The top-left corner of the create box will be (0, 0).
@@ -331,7 +332,7 @@ class Box:
         h, w, _ = img.shape
         return Box([0, 0, w, h])
 
-    def translate(self, delta:Union[Size2d,npt.ArrayLike]) -> Box:
+    def translate(self, delta:Size2d|npt.ArrayLike) -> Box:
         """본 Box 객체를 주어진 거리만큼 평행 이동시킨다.
 
         Args:
@@ -559,7 +560,7 @@ class Box:
         x1, y1, x2, y2 = tuple(self.tlbr)
         return image[y1:y2, x1:x2]
     
-    def expand(self, margin:Union[float,npt.ArrayLike]) -> Box:
+    def expand(self, margin:float|npt.ArrayLike) -> Box:
         """Expand this box with the amount of the given margin.
 
         Args:

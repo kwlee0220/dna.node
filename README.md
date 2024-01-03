@@ -22,15 +22,23 @@ conda activate dna.node
 Pytorch 버전 호환성을 위해 python 3.10 버전을 가정한다.
 Python 3.10 이후 버전을 사용하면 'cu113'용 Pytorch를 설치할 수 없다.
 
-3. Pytorch ?ㅼ튂
+3. Pytorch 설치
 ```
 pip install torch==1.11.0+cu113 torchvision==0.12.0+cu113 torchaudio==0.11.0 --extra-index-url https://download.pytorch.org/whl/cu113
 python -c "import torch; print(torch.cuda.is_available())"
 ```
-위 python 수행을 통해 True가 화면에 출력되어야 한다. 그렇지 않다면 Nvidia GPU, driver,
-또는 pytorch 중 하나 이상에 오류가 있다는 의미이다.
+위 python 수행을 통해 True가 화면에 출력되어야 한다. 그렇지 않다면 Nvidia GPU, driver, 또는 pytorch 중 하나 이상에 오류가 있다는 의미이다.
 
 4. 기타 활용 module들 설치
 ```
 pip install -r requirements.txt
+```
+
+5. PYTHONPATH 환경 변수 등록
+시스템 환경 변수 'PYTHONPATH'에 fork된 디렉토리를 추가한다.
+```
+(Linux 환경)
+set PYTHONPATH=.../dna.node
+(Windows 환경)
+setx PYTHONPATH %cd%    # Fork된 현 디렉토리인 것을 가정함.
 ```

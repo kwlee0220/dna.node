@@ -19,7 +19,7 @@ _DEFAULT_WINDOW_SIZE = Size2di(0, 0)
 
 
 class ImageProcessorOptions(CameraOptions):
-    PROCESSOR_ONLY_KEYS = {'camera_uri', 'show', 'output_video', 'title', 'progress', 'crf'}
+    PROCESSOR_ONLY_KEYS = { 'show', 'output_video', 'title', 'progress', 'crf' }
     KEYS = CameraOptions.KEYS.union(PROCESSOR_ONLY_KEYS)
     
     def __init__(self, **options):
@@ -27,9 +27,9 @@ class ImageProcessorOptions(CameraOptions):
                 
     def __setitem__(self, key: str, item: Any) -> None:
         match key:
-            case 'camera_uri':
-                assert isinstance(item, str)
-                self.data[key] = item
+            # case 'camera_uri':
+            #     assert isinstance(item, str)
+            #     self.data[key] = item
             case 'show':
                 if isinstance(key, str):
                     self.data['show'] = Size2di.from_expr(item)

@@ -4,8 +4,9 @@ from typing import Any, Generator
 import uuid
 import redis
 
-from dna.event import EventQueue, NodeTrack
+from dna.event import EventQueue
 from dna.execution import ExecutionState, InvocationError
+from ..node_track import NodeTrack
 from . import JsonSerde
     
 

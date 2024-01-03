@@ -4,11 +4,10 @@ from typing import Any
 
 import json
 
-from dna import Point
-from .types import JsonEvent
+from dna import Point, SerDeable, JsonSerDeable
 
 
-class JsonEventImpl(JsonEvent):
+class JsonEventImpl(SerDeable['JsonEventImpl'],JsonSerDeable['JsonEventImpl']):
     __slots__ = ('json_obj')
     
     def __init__(self, json_obj:dict[str,Any]) -> None:
@@ -40,15 +39,15 @@ class JsonEventImpl(JsonEvent):
     def location(self, new_loc:Point) -> None:
         self.json_obj['location'] = list(new_loc)
         
-    @classmethod
-    def from_json(cls, json_str:str) -> JsonEventImpl:
+    @staticmethod
+    def from_json(json_str:str) -> JsonEventImpl:
         return JsonEventImpl(json.loads(json_str))
     
     def to_json(self) -> str:
         return json.dumps(self.json_obj)
     
-    @classmethod
-    def deserialize(cls, json_bytes:bytes) -> JsonEventImpl:
+    @staticmethod
+    def deserialize(json_bytes:bytes) -> JsonEventImpl:
         return JsonEventImpl.from_json(json_bytes.decode('utf-8'))
     
     def serialize(self) -> bytes:

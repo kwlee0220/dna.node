@@ -29,44 +29,6 @@ class ObjectDetector(metaclass=ABCMeta):
         return [self.detect(frame) for frame in frames]
 
 
-class ScoreFilteredObjectDetector(ObjectDetector):
-    def __init__(self, detector: ObjectDetector, min_score: float) -> None:
-        super().__init__()
-
-        self.detector = detector
-        if min_score < 0:
-            raise ValueError(f'invalid score threshold: {min_score}')
-        self.min_score = min_score
-
-    def detect(self, frame: Frame) -> list[Detection]:
-        return [det for det in self.detector.detect(frame)
-                        if det.score < 0 or det.score >= self.min_score]
-
-
-class LabelFilteredObjectDetector(ObjectDetector):
-    def __init__(self, detector: ObjectDetector, accept_labels: list[str]) -> None:
-        super().__init__()
-
-        self.detector = detector
-        self.labels = accept_labels
-
-    def detect(self, frame: Frame) -> list[Detection]:
-        return [det for det in self.detector.detect(frame)
-                        if det.label in self.labels]
-
-
-class BlindZoneObjectDetector(ObjectDetector):
-    def __init__(self, detector: ObjectDetector, blind_zones: list[Box]) -> None:
-        super().__init__()
-
-        self.detector = detector
-        self.blind_zones = blind_zones
-
-    def detect(self, frame: Frame) -> list[Detection]:
-        return [det for det in self.detector.detect(frame)
-                        if not any(zone.contains(det.bbox) for zone in self.blind_zones)]
-
-
 class LogReadingDetector(ObjectDetector):
     def __init__(self, det_file: Path) -> None:
         """Create an ObjectDetector object that issues detections from a detection file.

@@ -28,7 +28,7 @@ class Frame:
     
 
 class CameraOptions(UserDict):
-    KEYS = {'camera_uri', 'fps', 'sync', 'init_ts', 'begin_frame', 'end_frame'}
+    KEYS = { 'fps', 'sync', 'init_ts', 'begin_frame', 'end_frame' }
     
     def __init__(self, **options):
         super().__init__()
@@ -41,9 +41,6 @@ class CameraOptions(UserDict):
                 
     def __setitem__(self, key:str, item:Any) -> None:
         match key:
-            case 'camera':
-                assert isinstance(item, str)
-                self.data['camera_uri'] = item
             case 'fps':
                 assert isinstance(item, int)
                 self.data['fps'] = item

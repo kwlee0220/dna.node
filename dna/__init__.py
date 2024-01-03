@@ -1,12 +1,12 @@
 from .size2d import Size2d
 from .size2di import Size2di
 from .types import Named, KeyValue, Box, Point, InvalidStateError, NodeId, TrackId, TrackletId, Trajectory
-from .types import BytesSerDeable
-from .types import BytesSerializer, BytesDeserializer, JsonSerializer, JsonDeserializer, JsonObjectSerializer, JsonObjectDeserializer
+from .types import Serializable, Deserializable, SerDeable, Deserializer, Serializer
+from .types import JsonSerializable, JsonDeserializable, JsonSerDeable, JsonSerializer, JsonDeserializer
 from .color import BGR
 from .utils import initialize_logger, sub_logger
 
-__version__ = '3.0.0'
+__version__ = '2023.12.29'
 
 DEBUG_FRAME_INDEX = -1
 DEBUG_SHOW_IMAGE = False

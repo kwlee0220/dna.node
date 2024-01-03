@@ -64,16 +64,20 @@ class KafkaEvent(ABC):
         ...
 
 
-@runtime_checkable
-class JsonEvent(Protocol):
+class JsonEvent(ABC):
+    __slots__ = ()
+    
     @property
+    @abstractmethod
     def ts(self) -> int: ...
     
+    @abstractmethod
     def to_json(self) -> str:
         ...
     
-    @classmethod
-    def from_json(cls, json_str:str) -> JsonEvent: ...
+    @staticmethod
+    @abstractmethod
+    def from_json(json_str:str) -> JsonEvent: ...
     
 JsonEventT = TypeVar('JsonEventT', bound=JsonEvent)
 

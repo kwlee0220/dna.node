@@ -1,15 +1,18 @@
+from collections.abc import Generator
 
-from typing import Optional
-import cv2
-from omegaconf import OmegaConf
+def averager() -> Generator[float, float, None]:
+    total = 0.0
+    count = 0
+    average = 0.0
+    while True:
+        term = yield average
+        total += term
+        count += 1
+        average = total / count
+        
+coro_avg = averager()
+print(next(coro_avg))
 
-from dna import Size2d, camera
-
-conf = OmegaConf.load("conf/etri_testbed/etri_01.yaml")
-print(type(conf))
-x = OmegaConf.create()
-pass
-
-# cam = camera.load_camera("output/test.mp4", sync=True, end_frame=51)
-# result = camera.process_images(cam, show=True, title='frame+fps', output_video='output/output.mp4')
-# print(result)
+print(coro_avg.send(10))
+print(coro_avg.send(30))
+print(coro_avg.send(5))

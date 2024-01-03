@@ -51,3 +51,26 @@ def add_kafka_consumer_arguments(parser:argparse.ArgumentParser) -> None:
     parser.add_argument("--initial_poll_timeout", metavar="milli-seconds", type=int, default=5000,
                         help="initial Kafka poll timeout in milli-seconds")
     parser.add_argument("--drop_poll_timeout", action='store_true')
+    
+    
+from collections.abc import Iterator
+from kafka.consumer.fetcher import ConsumerRecord
+from dna.event.kafka_utils import open_kafka_consumer, read_topics, PollTimeout
+def read_typed_topic(**options) -> Iterator[ConsumerRecord|PollTimeout]:
+    from dna.node import node_event_type
+    
+    if type := options.get('type'):
+        deser = node_event_type.find_deserializer_by_type_str(type)
+        options['value_deserializer'] = deser
+    elif topics := options.get('topics'):
+        deser = node_event_type.find_deserializer_by_topic(topics[0])
+        options['value_deserializer'] = deser
+    else:
+        raise ValueError(f"type is not specified")
+    
+    from contextlib import closing
+    
+    consumer = open_kafka_consumer(**options)
+    with closing(consumer):
+        for rec in read_topics(consumer, **options):
+            yield rec

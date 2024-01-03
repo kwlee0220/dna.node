@@ -6,7 +6,8 @@ import logging
 import redis
 
 from dna import InvalidStateError
-from dna.event import KafkaEvent, SilentFrame, EventListener
+from ..types import SilentFrame
+from dna.event import KafkaEvent, EventListener
     
 
 class RedisEventPublisher(EventListener):

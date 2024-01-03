@@ -9,17 +9,11 @@ from kafka.consumer.fetcher import ConsumerRecord
 from kafka.errors import NoBrokersAvailable
 
 from dna.utils import utc_now_millis
-from dna.node.utils import find_event_deserializer
 
 
 def open_kafka_consumer(kafka_brokers:str, kafka_offset:str,
                         key_deserializer=None, value_deserializer=None,
                         **options) -> KafkaConsumer:
-    if value_deserializer is None:
-        type = options.get('type')
-        if type is not None:
-            value_deserializer = find_event_deserializer(type)
-    
     consumer = KafkaConsumer(bootstrap_servers=kafka_brokers, auto_offset_reset=kafka_offset,
                              key_deserializer=key_deserializer,
                              value_deserializer=value_deserializer)

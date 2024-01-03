@@ -6,13 +6,13 @@ from dataclasses import dataclass, field
 import numpy as np
 from kafka.consumer.fetcher import ConsumerRecord
 
-from dna import KeyValue, NodeId, TrackId, TrackletId, BytesSerDeable, BytesSerializer, BytesDeserializer
+from dna import KeyValue, NodeId, TrackId, TrackletId, SerDeable
 from dna.event import KafkaEvent
 from dna.event.proto.reid_feature_pb2 import TrackFeatureProto   # type: ignore
 
 
 @dataclass(frozen=True, eq=True, order=False, repr=False)   # slots=True
-class TrackFeature(KafkaEvent,BytesSerDeable):
+class TrackFeature(KafkaEvent,SerDeable['TrackFeature']):
     node_id: NodeId     # node id
     track_id: TrackId   # tracking object id
     frame_index: int
@@ -35,16 +35,10 @@ class TrackFeature(KafkaEvent,BytesSerDeable):
     def from_kafka_record(record:ConsumerRecord) -> TrackFeature:
         return TrackFeature.from_bytes(record.value)
     
-    @staticmethod
-    def bytes_serializer() -> BytesSerializer[TrackFeature]:
-        return lambda tfeat: tfeat.to_bytes()
-    @staticmethod
-    def bytes_deserializer() -> BytesDeserializer[TrackFeature]:
-        return lambda bytes: TrackFeature.from_bytes(bytes)
-
+    # override Serializable.serialize
     def serialize(self) -> bytes:
         return self.to_bytes()
-
+    # override Deserializable.deserialize
     @classmethod
     def deserialize(cls, binary_data:bytes) -> TrackFeature:
         return TrackFeature.from_bytes(binary_data)

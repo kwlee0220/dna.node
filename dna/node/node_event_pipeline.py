@@ -47,7 +47,7 @@ class CompositeMinFrameIndexGauges:
         return self.min
     
 
-class NodeTrackEventPipeline2(EvenNodePipeline, TrackProcessor):
+class NodeEventPipeline(EvenNodePipeline, TrackProcessor):
     def __init__(self, node_id:NodeId, publishing_conf:DictConfig,
                  image_processor:ImageProcessor,
                  *,
