@@ -134,13 +134,13 @@ dmypy.json
 !data/
 data/*
 !data/kafka_scripts/
+!data/samples/
 
 output/
 models/
 *.pt
 *.pth
 *.whl
-*.mp4
 output.png
 docker/share/
 docker/Dockerfile.0
