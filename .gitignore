@@ -130,8 +130,10 @@ dmypy.json
 
 # dna.node
 .gradle/
-data/
-!data/kafka_scripts
+
+!data/
+data/*
+!data/kafka_scripts/
 
 output/
 models/
