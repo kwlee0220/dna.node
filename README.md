@@ -77,7 +77,7 @@ dna_node <설정 파일 경로> [options]
 ```
 설정 파일은 YAML 형식을 사용하며 예제는 [conf.yaml](conf/sample.yaml)를 참조하면 된다.
 
-<div style="width:100px">옵션</div> | 인자  | 설명
+옵션 | 인자  | 설명
 -------------|------------|---------
 -h, --help   |            | 본 프로그램의 도움말을 출력하고 종료시킨다.
 --camera     | \<number> \| \<video-path> \| \<rstp-url>    | 영상 획득에 사용할 카메라를 지정.</br> * \<number> USB등으로 연결된 지역 카메라 번호. (예: 0)</br> * \<video-path>: 비디오 파일 경로. (예: `data/test.mp4`)</br> * \<rstp-url>: RSTP 영상 URL. (예: `rtsp://admin:password@129.254.99.99:558/LiveChannel/0/media.smp`)
@@ -107,7 +107,7 @@ dna_node <설정 파일 경로> [options]
 dna_node_server [options]
 ```
 
-<div style="width:100px">옵션</div> | 인자  | 설명
+옵션 | 인자  | 설명
 ----------------|-------------|---------
 -h, --help      |             | 본 프로그램의 도움말을 출력하고 종료시킨다.
 --conf_root     | \<dir-path> | 본 프로그램이 사용할 분석 설정 파일들이 저장될 디렉토리를 지정함.
@@ -127,7 +127,7 @@ dna_node_server --conf_root conf --redis redis://localhost:6379?db=0 --req_chann
 ```
 dna_show [options]
 ```
-<div style="width:100px">옵션</div> | 인자  | 설명
+옵션 | 인자  | 설명
 ----------------|------------|---------
 -h, --help      |            | 본 프로그램의 도움말을 출력하고 종료시킨다.
 --camera     | \<number></br> \| \<video-path></br> \| \<rstp-url>    | 영상 획득에 사용할 카메라를 지정.</br> * \<number> USB등으로 연결된 지역 카메라 번호. (예: 0)</br> * \<video-path>: 비디오 파일 경로. (예: `data/test.mp4`)</br> * \<rstp-url>: RSTP 영상 URL. (예: `rtsp://admin:password@129.254.99.99:558/LiveChannel/0/media.smp`)
@@ -153,7 +153,7 @@ dna_show [options]
 ```
 dna_print_events [options]
 ```
-<div style="width:100px">옵션</div> | 인자  | 설명
+옵션 | 인자  | 설명
 ----------------|-------------|---------
 -h, --help      |             | 본 프로그램의 도움말을 출력하고 종료시킨다.
 --kafka_brokers | \<접속 정보> | 영상 분석으로 생성된 이벤트를 전송할 Kafka 접속 정보. 별도로 지정하지 않으면 `localhost:9092`를 설정된다.
@@ -166,7 +166,7 @@ dna_print_events [options]
 ```
 dna_export_topic <file> [options]
 ```
-<div style="width:150px">옵션</div> | 인자  | 설명
+옵션 | 인자  | 설명
 ----------------|-------------|---------
 -h, --help      |             | 본 프로그램의 도움말을 출력하고 종료시킨다.
 --kafka_brokers | \<접속 정보> | 영상 분석으로 생성된 이벤트를 전송할 Kafka 접속 정보. 별도로 지정하지 않으면 `localhost:9092`를 설정된다.
@@ -184,7 +184,7 @@ dna_export_topic <file> [options]
 ```
 dna_import_topic <file> [options]
 ```
-<div style="width:100px">옵션</div> | 인자  | 설명
+옵션 | 인자  | 설명
 ----------------|-------------|---------
 -h, --help      |             | 본 프로그램의 도움말을 출력하고 종료시킨다.
 --kafka_brokers | \<접속 정보> | 영상 분석으로 생성된 이벤트를 전송할 Kafka 접속 정보. 별도로 지정하지 않으면 `localhost:9092`를 설정된다.
@@ -198,7 +198,7 @@ dna_import_topic <file> [options]
 ```
 dna_replay <file> [options]
 ```
-<div style="width:100px">옵션</div> | 인자  | 설명
+옵션 | 인자  | 설명
 ----------------|-------------|---------
 -h, --help      |             | 본 프로그램의 도움말을 출력하고 종료시킨다.
 --kafka_brokers | \<접속 정보> | 이벤트를 전송할 Kafka 접속 정보. 별도로 지정하지 않으면 `localhost:9092`를 설정된다.
