@@ -8,7 +8,7 @@ from scripts.utils import add_image_processor_arguments
 
 
 def define_args(parser):
-    parser.add_argument("camera_uri", metavar="uri", help="target camera uri")
+    # parser.add_argument("camera_uri", metavar="uri", help="target camera uri")
     add_image_processor_arguments(parser)
     
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
@@ -17,7 +17,7 @@ def define_args(parser):
 def run(args:argparse.Namespace):
     initialize_logger(args.logger)
     
-    result = camera.process_images(args.camera_uri, **vars(args))
+    result = camera.process_images(args.camera, **vars(args))
     print(result)
     
 def main():

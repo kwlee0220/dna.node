@@ -84,7 +84,7 @@
             },
             "args": [
                 // "output/etri_01_tracks.mp4",
-                "D:/Dropbox/Temp/TEST/videos/etri_05.mp4",
+                "--camera", "D:/Dropbox/Temp/TEST/videos/etri_05.mp4",
                 // "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/0/media.smp",
                 // "rtsp://admin:Urc2004^^@129.254.171.195:554/profile2/media.smp",
                 // "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/5/media.smp/start=20231004T085000&end=20231004T085500",

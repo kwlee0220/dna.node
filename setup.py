@@ -29,7 +29,8 @@ setup(
             'dna_merge_sort_events = scripts.dna_merge_sort_events:main',
 			'dna_show_mc_locations = scripts.dna_show_mc_locations:main',
             'dna_print_events = scripts.dna_print_events:main',
-			'dna_export = scripts.dna_export_topic:main',
+			'dna_export_topic = scripts.dna_export_topic:main',
+			'dna_import_topic = scripts.dna_import_topic:main',
 			'dna_show_multiple_videos = scripts.dna_show_multiple_videos:main',
             
 			# 'dna_download = scripts.dna_download_node_events:main',
