@@ -13,6 +13,7 @@ from scripts.utils import add_kafka_consumer_arguments, read_typed_topic
 def define_args(parser) -> None:
     parser.add_argument("--files", nargs='+', default=None, help="track files to print")
     add_kafka_consumer_arguments(parser)
+    parser.add_argument("--drop_poll_timeout", action='store_true')
     parser.add_argument("--type", choices=['node-track', 'global-track', 'json-event', 'track-feature'],
                         default=None,
                         help="event type ('node-track', 'global-track', 'json-event', 'track-feature')")

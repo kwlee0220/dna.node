@@ -94,10 +94,23 @@ dna_node <설정 파일 경로> [options]
 --silent_kafka| | 생성된 이벤트를 Kafka로 전송하지 않도록 막음.
 --progress| | 수행 진척 상황 표시 여부
 --logger | \<file-path> | 프로그램 수행 중 출력되는 log 메시지를 위한 설정 정보 파일 경로명. 별도로 지정하지 않는 경우 `conf/logger.yaml` 경로를 사용함.
-#### 예제
+
+#### 예제 1
+아래 명령은 RSTP url `rtsp://admin:password@129.254.99.99:558/LiveChannel/0/media.smp`에서 발송하는 카메라 영상 정보를
+사용하여 차량 위치 추적 프로그램을 수행한다. 획득되는 영상 프레임에 부여하는 timestamp는 카메라 개방 시간을 기준으로 FPS를 기준으로
+순차 증가하며 부여된다. 분석된 결과로 발생된 이벤트들은 설정에 따라 Kafka topic에 전송된다.
+이때 사용하는 설정은 `conf/etri_01.yaml` 파일에서 읽어온다.
 ```
-* dna_node conf/etri_01.yaml --camera rtsp://admin:password@129.254.99.99:558/LiveChannel/0/media.smp --init_ts open
-* dna_node conf/etri_04.yaml --camera data/samples/test4.mp4 --init_ts 20231110T090300 --show --title frame+ts+fps --progress
+dna_node conf/etri_01.yaml --camera rtsp://admin:password@129.254.99.99:558/LiveChannel/0/media.smp --init_ts open
+```
+
+#### 예제 2
+아래 명령은 동영상 `data/samples/test4.mp4`에서 영상을 읽어 차량 위치 추적 프로그램을 수행한다. 영상 프레임은 1번 프레임부터 999번 프레임까지만
+사용하게 되며, 각 프레임은 2023년 11월 10일 오전 9시 3분을 기준으로 FPS에 의해 계산된 시간만큼 추가해가며 timestamp가 부연된다.
+분석된 결과로 발생된 이벤트들은 Kakfa topic에 전송되지 **않고**, 대신 `output/etri_04_events.pickle` 파일에 저장된다.
+분석 결과 영상은 화면에 표시되고, 화면에는 프레임 번호, 계산된 FPS가 출력된다. 또한 영상 처리의 진행 정도가 화면에 출력된다. 분석 설정은 `conf/etri_04.yaml` 파일을 사용한다.
+```
+dna_node conf/etri_04.yaml --camera data/samples/test4.mp4 --end_frame 1000 --init_ts 20231110T090300 --show --title frame+ts+fps --progress --silent_kafka --output output/etri_04_events.pickle
 ```
 
 
@@ -159,6 +172,12 @@ dna_print_events [options]
 --kafka_brokers | \<접속 정보> | 영상 분석으로 생성된 이벤트를 전송할 Kafka 접속 정보. 별도로 지정하지 않으면 `localhost:9092`를 설정된다.
 --kafka_offset  | latest \| earliest \| none | Kafka topic의 시작 offset
 --topics        | \<topic-name>, ... | 출력할 이벤트를 보유한 topic 이름 (리스트)
+--poll_timeout  | \<milli-secs> | Kafka poll timeout을 설정한다. 별도로 지정하지 않는 경우는 1000로 설정된다.
+--initial_poll_timeout | \<milli-secs> | Initial poll timeout를 설정한다. 일반적으로 초기 Kafka 접속 시간은 길어지기 때문에 별도로 지정할 필요가 있다. 별도로 지정하지 않는 경우는 5000로 설정된다.
+--timeout       | \<milli-secs> | Timeout를 설정한다. Kafka에서 주어진 기간 내에 이벤트를 획득하지 못하는 경우 프로그램을 종료시킨다.
+--drop_poll_timeout |         | Poll timeout이 발생하는 경우, 해당 정보를 화면에 출력하지 않는다.
+--type          | node-track</br>\| global-track</br>\| track-feature</br>\| json-event | 출력할 event 타입.
+--filter | \<expr>        | 이벤트 필터 표현식
 
 
 ### 5. `dna_export_topic`: Kafka topic 이벤트 export
@@ -203,5 +222,24 @@ dna_replay <file> [options]
 -h, --help      |             | 본 프로그램의 도움말을 출력하고 종료시킨다.
 --kafka_brokers | \<접속 정보> | 이벤트를 전송할 Kafka 접속 정보. 별도로 지정하지 않으면 `localhost:9092`를 설정된다.
 --sync         |            | 이벤트내에 포함된 timestamp에 동기화시켜 해당 이벤트를 전송시킨다..
+--progress| | 수행 진척 상황 표시 여부
+--logger | \<file-path> | 프로그램 수행 중 출력되는 log 메시지를 위한 설정 정보 파일 경로명. 별도로 지정하지 않는 경우 `conf/logger.yaml` 경로를 사용함.
+
+
+### 8. `dna_show_gtracks`: Kafka topic 이벤트 import
+`dna_show_gtracks`는 Kafka topic 'global-tracks'에 저장된 global track 이벤트를 활용해 항공 지도에 차량의 위치 정보를
+animation 효과로 가시화한다.
+```
+dna_show_gtracks <file> [options]
+```
+옵션 | 인자  | 설명
+----------------|-------------|---------
+-h, --help      |             | 본 프로그램의 도움말을 출력하고 종료시킨다.
+--kafka_brokers | \<접속 정보> | 영상 분석으로 생성된 이벤트를 전송할 Kafka 접속 정보. 별도로 지정하지 않으면 `localhost:9092`를 설정된다.
+--kafka_offset  | latest \| earliest \| none | Kafka topic의 시작 offset
+--topics        | \<topic-name>, ... | 출력할 이벤트를 보유한 topic 이름 (리스트)
+--poll_timeout  | \<milli-secs> | Kafka poll timeout을 설정한다. 별도로 지정하지 않는 경우는 1000로 설정된다.
+--initial_poll_timeout | \<milli-secs> | Initial poll timeout를 설정한다. 일반적으로 초기 Kafka 접속 시간은 길어지기 때문에 별도로 지정할 필요가 있다. 별도로 지정하지 않는 경우는 5000로 설정된다.
+--timeout       | \<milli-secs> | Timeout를 설정한다. Kafka에서 주어진 기간 내에 이벤트를 획득하지 못하는 경우 프로그램을 종료시킨다.
 --progress| | 수행 진척 상황 표시 여부
 --logger | \<file-path> | 프로그램 수행 중 출력되는 log 메시지를 위한 설정 정보 파일 경로명. 별도로 지정하지 않는 경우 `conf/logger.yaml` 경로를 사용함.
