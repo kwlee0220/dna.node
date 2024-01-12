@@ -203,6 +203,16 @@
             ],
             "justMyCode": true
         },
+        { "name": "Import Topic",
+            "type": "python", "request": "launch", "console": "integratedTerminal",
+            "program": "${workspaceFolder}/scripts/dna_import_topic.py",
+            "env": { "PYTHONPATH": "${workspaceFolder}" },
+            "args": [
+                "output/output.json",
+                "--topic", "global-tracks",
+            ],
+            "justMyCode": true
+        },
         { "name": "NodeClient",
             "type": "python", "request": "launch", "console": "integratedTerminal",
             "program": "${workspaceFolder}/scripts/dna_node_client.py",

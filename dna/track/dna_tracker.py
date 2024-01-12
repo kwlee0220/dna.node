@@ -25,7 +25,6 @@ from dna.detect import ObjectDetector, Detection
 from .types import ObjectTracker, MetricExtractor
 from .dna_track_params import load_track_params, DNATrackParams
 from .feature_extractor import DeepSORTMetricExtractor
-from .cnu_track.qdtrack_feature_extractor import QDTrackMetricExtractor
 from .dna_track import DNATrack
 from .tracker import Tracker
 from dna.node.node_track import NodeTrack
@@ -53,6 +52,7 @@ def load_feature_extractor(model_file:str=DSORT_REID_MODEL, normalize:bool=False
         if model_file == DSORT_REID_MODEL:
             return DeepSORTMetricExtractor(model_file, normalize)
         elif model_file == CNU_REID_MODEL:
+            from .cnu_track.qdtrack_feature_extractor import QDTrackMetricExtractor
             return QDTrackMetricExtractor(model_file)
         else:
             raise ValueError(f"unknown FeatureExtractor model id: {model_file}")

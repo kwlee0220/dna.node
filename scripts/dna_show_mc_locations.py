@@ -53,7 +53,7 @@ class Location:
 def define_args(parser):
     parser.add_argument("track_files", nargs='+', help="track files to display")
     parser.add_argument("--offsets", metavar="csv", help="camera frame offsets")
-    parser.add_argument("--start_frame", metavar="number", type=int, default=1, help="camera frame offsets")
+    parser.add_argument("--start_frame", metavar="number", type=int, default=1, help="start frame number")
     parser.add_argument("--interactive", "-i", action='store_true', help="show trajectories interactively")
 
     parser.add_argument("--logger", metavar="file path", help="logger configuration file path")
@@ -88,7 +88,7 @@ def run(args):
         
     world_image = cv2.imread(scripts.WORLD_MAP_IMAGE_FILE, cv2.IMREAD_COLOR)
     drawer = MCLocationDrawer(scenes, world_image)
-    drawer.draw(start_frame=args.start_frame)
+    drawer.draw(start_frame=args.start_frame, interactive=args.interactive)
 
 
 class MCLocationDrawer:

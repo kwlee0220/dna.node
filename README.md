@@ -212,7 +212,7 @@ dna_import_topic <file> [options]
 --logger | \<file-path> | 프로그램 수행 중 출력되는 log 메시지를 위한 설정 정보 파일 경로명. 별도로 지정하지 않는 경우 `conf/logger.yaml` 경로를 사용함.
 
 
-### 7. `dna_replay`: Kafka topic 이벤트 import
+### 7. `dna_replay`: 노드 이벤트 replay
 `dna_replay`는 주어진 파일에 기록된 event를 지정된 Kafka topic에 import 시킨다.
 ```
 dna_replay <file> [options]
@@ -226,7 +226,7 @@ dna_replay <file> [options]
 --logger | \<file-path> | 프로그램 수행 중 출력되는 log 메시지를 위한 설정 정보 파일 경로명. 별도로 지정하지 않는 경우 `conf/logger.yaml` 경로를 사용함.
 
 
-### 8. `dna_show_gtracks`: Kafka topic 이벤트 import
+### 8. `dna_show_gtracks`: 전역 위치 애니메이션
 `dna_show_gtracks`는 Kafka topic 'global-tracks'에 저장된 global track 이벤트를 활용해 항공 지도에 차량의 위치 정보를
 animation 효과로 가시화한다.
 ```
@@ -241,5 +241,23 @@ dna_show_gtracks <file> [options]
 --poll_timeout  | \<milli-secs> | Kafka poll timeout을 설정한다. 별도로 지정하지 않는 경우는 1000로 설정된다.
 --initial_poll_timeout | \<milli-secs> | Initial poll timeout를 설정한다. 일반적으로 초기 Kafka 접속 시간은 길어지기 때문에 별도로 지정할 필요가 있다. 별도로 지정하지 않는 경우는 5000로 설정된다.
 --timeout       | \<milli-secs> | Timeout를 설정한다. Kafka에서 주어진 기간 내에 이벤트를 획득하지 못하는 경우 프로그램을 종료시킨다.
+--show_support  |  | 노드별 차량 위치 정보를 통해 단일 전역 위치가 생성된 경우, 해당 노드별 차량 위치 표시 여부.
+--sync          |  | 전역 차량 애니메이션 시간 동기화 여부.
+--output_video  | \<path>  | 애니메이션 영상을 활용한 동영상 생성 여부.
+--no_show       |  | 애니메이션 화면 출력 중지 여부.
 --progress| | 수행 진척 상황 표시 여부
 --logger | \<file-path> | 프로그램 수행 중 출력되는 log 메시지를 위한 설정 정보 파일 경로명. 별도로 지정하지 않는 경우 `conf/logger.yaml` 경로를 사용함.
+
+
+### 9. `dna_show_mc_locations`: NodeTrack 이벤트 기반 다중 물체 위치 display
+`dna_show_mc_locations`는 주어진 NodeTrack 이벤트 파일을 사용하여 다중 물체의 위치를 지도에 출력한다.
+```
+dna_show_mc_locations <track-files> [options]
+```
+옵션 | 인자  | 설명
+----------------|-------------|---------
+-h, --help      |             | 본 프로그램의 도움말을 출력하고 종료시킨다.
+--offsets       | \<num>,\<num>,...,\<num> | 노드 이벤트의 상대 오프셋
+--start_frame   | \<num> | 시작 프레임 번호
+--interactive   |             | 차량 위치 정보 출력 애니메이션 중지
+--logger        | \<file-path> | 프로그램 수행 중 출력되는 log 메시지를 위한 설정 정보 파일 경로명. 별도로 지정하지 않는 경우 `conf/logger.yaml` 경로를 사용함.
