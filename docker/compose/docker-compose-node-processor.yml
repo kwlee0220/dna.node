@@ -4,36 +4,16 @@ name: dna-node-processor
 services:
 
 ###########################################################################
-############################### RTSP-SERVER ###############################
-###########################################################################
-  rtsp-server:
-    container_name: 'rtsp-server'
-    image: aler9/rtsp-simple-server
-    ports:
-       - "8554:8554"
-       - "1935:1935"
-       - "8888:8888"
-    environment:
-      RTSP_PROTOCOLS: "tcp"
-
-
-###########################################################################
 ########################### DNA_NODE_PROCESSOR ############################
 ###########################################################################
   dna-node-processor:
-    container_name: 'dna-node-processor'
+    container_name: 'dna-node-server'
     image: kwlee0220/dna-node
     volumes:
       - ./dna.node:/dna.node
       - ./torch_hub:/root/.cache/torch/hub
     environment:
-      DNA_NODE_CONF_ROOT: "conf"
-      DNA_NODE_KAFKA_BROKERS: "kafka01:19091,kafka02:19092,kafka03:19093"
-      DNA_NODE_RABBITMQ_URL: "rabbitmq://admin:admin@rabbitmq:5672"
-      DNA_NODE_SYNC: "False"
-      DNA_NODE_RTSP_RELAY: "rtsp-server:8554"
       DNA_NODE_FFMPEG_PATH: "/opt/conda/bin/ffmpeg"
-      DNA_NODE_SHOW_PROGRESS: "True"
       DISPLAY: "${DISPLAY}"
     deploy:
       resources:
@@ -45,9 +25,8 @@ services:
     networks:
       - default
       - dna_server_net
-    command: dna_node_processor
-    depends_on:
-      - rtsp-server
+#    command: dna_node_server --conf_root conf/etri_testbed --redis redis://localhost:6379?db=0 --req_channel track-requests --show
+		command: /bin/bash
     restart: always
 
 networks:

@@ -7,20 +7,15 @@ services:
       - 8080:8080
     depends_on:
       - zookeeper
-      - kafka01
       - kafka02
-      - kafka03
     environment:
-      KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka01:19091,kafka02:19092,kafka03:19093"
+      KAFKA_CLUSTERS_0_NAME: dna
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka02:19092"
       KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
-      KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8081
-      KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: first
-      KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect-fs:8083
       LOGGING_LEVEL_ROOT: warn
     networks:
       - dna_server_net
-    restart: always
+    restart: on-failure
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.1.2
@@ -30,6 +25,7 @@ services:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
       ZOOKEEPER_SERVERS: "zookeeper:22888:23888"
+      ZOOKEEPER_LOG4J_ROOT_LOGLEVEL: warn
     ports:
       - 2181:2181
     volumes:
@@ -39,31 +35,7 @@ services:
       - ./zookeeper/varlib/log:/var/lib/zookeeper/log
     networks:
       - dna_server_net
-    restart: always
-
-  kafka01:
-    image: confluentinc/cp-kafka:7.1.2
-    container_name: kafka01
-    ports:
-      - 9091:9091
-#      - 9997:9997
-    environment:
-      KAFKA_BROKER_ID: 1
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka01:19091,PLAINTEXT_HOST://localhost:9091
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_DELETE_TOPIC_ENABLE: true
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
-    volumes:
-      - ./kafka01/kafka-logs:/tmp/kafka-logs
-      - ./kafka01/data:/var/lib/kafka/data
-    networks:
-      - dna_server_net
-    depends_on:
-      - zookeeper
-    restart: always
+    restart: on-failure
 
   kafka02:
     image: confluentinc/cp-kafka:7.1.2
@@ -86,30 +58,7 @@ services:
       - dna_server_net
     depends_on:
       - zookeeper
-    restart: always
-
-  kafka03:
-    image: confluentinc/cp-kafka:7.1.2
-    container_name: kafka03
-    ports:
-      - "9093:9093"
-    environment:
-      KAFKA_BROKER_ID: 3
-      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka03:19093,PLAINTEXT_HOST://localhost:9093
-      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
-      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
-      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
-      KAFKA_DELETE_TOPIC_ENABLE: true
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
-    volumes:
-      - ./kafka03/kafka-logs:/tmp/kafka-logs
-      - ./kafka03/data:/var/lib/kafka/data
-    networks:
-      - dna_server_net
-    depends_on:
-      - zookeeper
-    restart: always
+    restart: on-failure
 
 
   redis:
@@ -117,9 +66,14 @@ services:
     container_name: redis
     restart: always
     volumes:
-      - redis_volume_data:/data
+      - ./redis/data:/data
+      - ./redis/conf/redis.conf:/usr/local/conf/redis.conf
     ports:
       - 6379:6379
+    labels:
+      - "name=redis"
+      - "mode=standalone"
+    command: redis-server /usr/local/conf/redis.conf
 
 
   postgres:
@@ -137,7 +91,6 @@ services:
       - dna_server_net
     restart: always
 
-
 networks:
   dna_server_net:
     external: true
@@ -145,4 +98,3 @@ networks:
 
 volumes:
   pgdata:
-  redis_volume_data:
