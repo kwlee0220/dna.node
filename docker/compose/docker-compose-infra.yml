@@ -15,7 +15,7 @@ services:
       LOGGING_LEVEL_ROOT: warn
     networks:
       - dna_server_net
-    restart: on-failure
+    restart: always
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.1.2
@@ -89,7 +89,20 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - dna_server_net
-    restart: always
+    restart: on-failure
+
+  pgadmin4:
+    container_name: pgadmin4
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: dna@admin.com
+      PGADMIN_DEFAULT_PASSWORD: urc2004
+      POSTGRES_DB: dna
+    ports:
+      - "5050:80"
+    networks:
+      - dna_server_net
+    restart: on-failure
 
 networks:
   dna_server_net:
