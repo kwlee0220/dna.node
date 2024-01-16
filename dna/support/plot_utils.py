@@ -55,5 +55,5 @@ def draw_label2(convas:Image, label:str, pos:Point, font_face, color:BGR,
         (label_w, label_h) = cv2.getTextSize(label, font_face, fontScale=font_scale, thickness=line_thickness)[0]
         tl = Point(pos) - Size2d((0,label_h)) - bg_margin
         br = tl + Size2d((label_w, label_h)) + (bg_margin*2)
-        convas = cv2.rectangle(convas, tl, br, fill_color, -1, lineType=cv2.LINE_AA)
-    return cv2.putText(convas, label, pos, font_face, font_scale, color, line_thickness, lineType=cv2.LINE_AA)
+        convas = cv2.rectangle(convas, tl.round(), br.round(), fill_color, -1, lineType=cv2.LINE_AA)
+    return cv2.putText(convas, label, pos.round(), font_face, font_scale, color, line_thickness, lineType=cv2.LINE_AA)

@@ -61,14 +61,15 @@ zones = [
 ]
 
 with cam.open() as cap:
-    src_img = cap().image
+    # src_img = cap().image
+    src_img = next(cap)
     # src_img = cv2.imread("output/ETRI_221011.png", cv2.IMREAD_COLOR)
     
-    box = Box.from_image(src_img)
+    box = Box.from_image(src_img.image)
     
     img = create_blank_image(box.expand(50).size(), clr=color.BLACK)
     roi = box.translate([SHIFT, SHIFT])
-    roi.update_roi(img, src_img)
+    roi.update_roi(img, src_img.image)
 # img = cv2.imread("output/2023/etri_06_trajs.jpg", cv2.IMREAD_COLOR)
 # img = cv2.imread("output/ETRI_221011.png", cv2.IMREAD_COLOR)
 

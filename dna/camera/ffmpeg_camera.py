@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import Optional, Any
 
 import ffmpeg
 import numpy as np
 import cv2
 
-from dna import Size2d, Image
+from dna import Size2d
+from dna.camera import Image
 from .types import Camera
 from .utils import SyncableImageCapture
 from dna.support import iterables
@@ -26,7 +27,7 @@ class FFMPEGCamera(Camera):
         self.__uri = uri
         probe = ffmpeg.probe(uri)
         _, self.cap_info = iterables.find_first(probe['streams'], lambda s: s['codec_name'] == 'h264')
-        self.__image_size = Size2d(self.cap_info['width'], self.cap_info['height')) # type: ignore
+        self.__image_size = Size2d((self.cap_info['width'], self.cap_info['height'])) # type: ignore
         self.__fps = int(eval_ratio(self.cap_info['r_frame_rate'])) # type: ignore
         self.__sync = options.get('sync', False)
         self.__pipeline = (

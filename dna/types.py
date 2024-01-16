@@ -569,7 +569,7 @@ class Box:
         Returns:
             Box: the expanded box object.
         """
-        if isinstance(margin, float):
+        if isinstance(margin, float|int):
             tlbr = self.tlbr + [-margin, -margin, margin, margin]
             return Box(tlbr)
         else:

@@ -51,7 +51,7 @@ def load_camera(camera_uri:str, **options) -> Camera:
     elif is_rtsp_camera(camera_uri):
         if camera_uri.find("&end=") >= 0 or camera_uri.find("start=") >= 0:
             from .ffmpeg_camera import FFMPEGCamera
-            return FFMPEGCamera(camera_uri, cam_opts)
+            return FFMPEGCamera(camera_uri, **cam_opts)
         else:
             return OpenCvCamera(camera_uri, cam_opts)
     else:
