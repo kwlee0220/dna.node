@@ -73,7 +73,7 @@ class GlobalTrackDrawer:
         self.show_supports = show_supports
         
         if output_video:
-            w, h, _ = world_image.shape
+            h, w, _ = world_image.shape
             self.writer = OpenCvVideoWriter(output_video, 10, Size2di(w, h))
         else:
             self.writer = None
@@ -161,6 +161,7 @@ def run(args:argparse.Namespace):
                         key = cv2.waitKey(delay_ms) & 0xFF
                         if key == ord('q'):
                             break
+                        
                     tracks.clear()
                     tracks.append(track)    
                     upper_ts += 100

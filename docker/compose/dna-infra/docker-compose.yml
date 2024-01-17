@@ -1,0 +1,111 @@
+version: "3.0"
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.1.2
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_SERVER_ID: 1
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+      ZOOKEEPER_SERVERS: "zookeeper:22888:23888"
+      ZOOKEEPER_LOG4J_ROOT_LOGLEVEL: warn
+    ports:
+      - 2181:2181
+    volumes:
+      - ./zookeeper/data:/data
+      - ./zookeeper/datalog:/datalogco
+      - ./zookeeper/varlib/data:/var/lib/zookeeper/data
+      - ./zookeeper/varlib/log:/var/lib/zookeeper/log
+    networks:
+      - dna_server_net
+    restart: on-failure
+
+  kafka:
+    image: confluentinc/cp-kafka:7.1.2
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:19092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_DELETE_TOPIC_ENABLE: true
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    volumes:
+      - ./kafka/kafka-logs:/tmp/kafka-logs
+      - ./kafka/data:/var/lib/kafka/data
+    networks:
+      - dna_server_net
+    depends_on:
+      - zookeeper
+    restart: on-failure
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8080:8080
+    depends_on:
+      - zookeeper
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: dna
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: "kafka:19092"
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+      LOGGING_LEVEL_ROOT: warn
+    networks:
+      - dna_server_net
+    restart: always
+
+  redis:
+    image: 'redis:6.0.7'
+    container_name: redis
+    restart: always
+    volumes:
+      - ./redis/data:/data
+      - ./redis/conf/redis.conf:/usr/local/conf/redis.conf
+    ports:
+      - 6379:6379
+    labels:
+      - "name=redis"
+      - "mode=standalone"
+    command: redis-server /usr/local/conf/redis.conf
+
+  postgres:
+    container_name: postgres
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: dna
+      POSTGRES_PASSWORD: urc2004
+      POSTGRES_DB: dna
+    ports:
+      - "6432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - dna_server_net
+    restart: on-failure
+
+  pgadmin4:
+    container_name: pgadmin4
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: dna@etri.re.kr
+      PGADMIN_DEFAULT_PASSWORD: urc2004
+      POSTGRES_DB: dna
+    ports:
+      - "5050:80"
+    networks:
+      - dna_server_net
+    restart: on-failure
+
+networks:
+  dna_server_net:
+    external: true
+    internal: true
+
+volumes:
+  pgdata:

@@ -294,7 +294,6 @@ class ImageProcessor(AbstractExecution):
     
     def __set_progress(self, options:ImageProcessorOptions) -> None:
         if options.get('progress', False):
-            # 카메??객체??'begin_frame' ?�성�?'end_frame' ?�성??존재?�는 경우?�만 ShowProgress processor�?추�??�다.
             self.final_frame_readers.append(ShowProgress())
 
 class ShowProgress(FrameReader):
@@ -374,7 +373,7 @@ class ShowFrame(FrameReader):
         
         assert img_proc.show_size is not None
         self.window_size = img_proc.image_size if img_proc.show_size == _DEFAULT_WINDOW_SIZE else img_proc.show_size
-        cv2.resizeWindow(self.window_name, self.window_size)
+        cv2.resizeWindow(self.window_name, self.window_size.width, self.window_size.height)
         
         if self.logger and self.logger.isEnabledFor(logging.INFO):
             self.logger.info(f'create window: {self.window_name}, size=({self.window_size})')

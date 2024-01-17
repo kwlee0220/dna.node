@@ -29,7 +29,7 @@
                 "--camera", "D:/Dropbox/Temp/TEST/videos/etri_01.mp4",
                 // "--camera", "C:/Temp/etri_01.mp4",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/4/media.smp/start=20231030T090000&end=20231030T090500",
-                // "--output_video", "output/output.mp4",   // -v <file>
+                "--output_video", "output/output.mp4",   // -v <file>
                 // "--crf", "ffmpeg",
                 "--output", "output/output.pickle",
                 // "--begin_frame", "330",
@@ -39,7 +39,7 @@
                 "--title", "frame+fps",
                 // "--progress",  // -p
                 "--init_ts", "0",
-                // "--silent_kafka",
+                "--silent_kafka",
             ],
             "justMyCode": true
         },
@@ -86,7 +86,8 @@
                 // "output/etri_01_tracks.mp4",
                 // "--camera", "D:/Dropbox/Temp/TEST/videos/etri_05.mp4",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel/0/media.smp",
-                "--camera", "rtsp://admin:Urc2004^^@129.254.171.195:554/profile2/media.smp",
+                // "--camera", "rtsp://admin:Urc2004^^@129.254.171.195:554/profile2/media.smp",
+                "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/0/media.smp/start=20240109T090000&end=20240109T090900&overlap=100&session=1745459",
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/5/media.smp/start=20231004T085000&end=20231004T085500",
                 // "--nosync",
                 "--init_ts", "20231110T0900",
@@ -139,13 +140,13 @@
             "args": [
                 // "--track_file", "D:/Dropbox/Temp/output/global_tracks.json",
                 // "--topic", "global-tracks",
-                "--output_video", "D:/Dropbox/Temp/output/global_tracks.mp4",
+                "--output_video", "output/global_tracks.mp4",
                 "--show_supports",
                 "--kafka_offset", "earliest",
-                "--timeout", "3000",
+                "--timeout", "1000",
                 // "--no_show",
                 // "--progress",
-                "--sync",
+                // "--sync",
             ],
             "justMyCode": true
         },
@@ -218,8 +219,9 @@
             "env": { "PYTHONPATH": "${workspaceFolder}" },
             "args": [
                 "--node", "etri:05",
+                "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/0/media.smp/start=20240109T090000&end=20240109T090900&overlap=100&session=1745459",
                 // "--camera", "rtsp://admin:Urc2004^^@129.254.171.135:554/profile2/media.smp",
-                "--camera", "data/samples/test5.mp4",
+                // "--camera", "data/samples/test5.mp4",
             ],
             "justMyCode": true
         },

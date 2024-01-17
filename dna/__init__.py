@@ -6,7 +6,7 @@ from .types import JsonSerializable, JsonDeserializable, JsonSerDeable, JsonSeri
 from .color import BGR
 from .utils import initialize_logger, sub_logger
 
-__version__ = '2024.01.16'
+__version__ = '24.01.17'
 
 DEBUG_FRAME_INDEX = -1
 DEBUG_SHOW_IMAGE = False

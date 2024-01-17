@@ -6,7 +6,7 @@ import ffmpeg
 import numpy as np
 import cv2
 
-from dna import Size2d
+from dna import Size2di
 from dna.camera import Image
 from .types import Camera
 from .utils import SyncableImageCapture
@@ -27,7 +27,7 @@ class FFMPEGCamera(Camera):
         self.__uri = uri
         probe = ffmpeg.probe(uri)
         _, self.cap_info = iterables.find_first(probe['streams'], lambda s: s['codec_name'] == 'h264')
-        self.__image_size = Size2d((self.cap_info['width'], self.cap_info['height'])) # type: ignore
+        self.__image_size = Size2di(self.cap_info['width'], self.cap_info['height']) # type: ignore
         self.__fps = int(eval_ratio(self.cap_info['r_frame_rate'])) # type: ignore
         self.__sync = options.get('sync', False)
         self.__pipeline = (
@@ -46,7 +46,7 @@ class FFMPEGCamera(Camera):
         return self.__uri
 
     @property
-    def image_size(self) -> Size2d:
+    def image_size(self) -> Size2di:
         return self.__image_size
 
     @property

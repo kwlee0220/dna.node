@@ -15,7 +15,7 @@ from .types import MetricExtractor
 
 
 class DeepSORTMetricExtractor(MetricExtractor):
-    def __init__(self, wt_path:Path, normalize:bool=False) -> None:
+    def __init__(self, wt_path:str, normalize:bool=False) -> None:
         #loading this encoder is slow, should be done only once.	
         self.encoder = torch.load(wt_path)			
         self.encoder = self.encoder.cuda()

@@ -12,4 +12,4 @@ docker run -it --name dna-node ^
 			--network=dna_server_net ^
 			-v ./dna.node:/dna.node -v ./torch_hub:/root/.cache/torch/hub ^
 			kwlee0220/dna-node ^
-			dna node conf/conf.yaml --camera test.mp4 --kafka_brokers localhost:9092 --init_ts runtime %*
+			dna_node conf/etri_04.yaml --camera test.mp4 --kafka_brokers localhost:9092 --init_ts runtime %*

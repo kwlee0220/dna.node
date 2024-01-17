@@ -26,11 +26,12 @@ class OpenCvVideoWriter(VideoWriter):
         self.fourcc = None
         ext = path.suffix.lower()
         if ext == '.mp4':
-            self.fourcc = cv2.VideoWriter_fourcc(*OpenCvVideoWriter.FOURCC_MP4V)
+            # self.fourcc = cv2.VideoWriter_fourcc(*OpenCvVideoWriter.FOURCC_MP4V)
+            self.fourcc = cv2.VideoWriter.fourcc(*OpenCvVideoWriter.FOURCC_MP4V)
         elif ext == '.avi':
-            self.fourcc = cv2.VideoWriter_fourcc(*OpenCvVideoWriter.FOURCC_DIVX)
+            self.fourcc = cv2.VideoWriter.fourcc(*OpenCvVideoWriter.FOURCC_DIVX)
         elif ext == '.wmv':
-            self.fourcc = cv2.VideoWriter_fourcc(*OpenCvVideoWriter.FOURCC_WMV1)
+            self.fourcc = cv2.VideoWriter.fourcc(*OpenCvVideoWriter.FOURCC_WMV1)
         else:
             raise IOError("unknown output video file extension: 'f{ext}'")
         self.__path = str(path.resolve())
@@ -63,7 +64,6 @@ class OpenCvVideoWriter(VideoWriter):
     def write(self, image:Image) -> None:
         assert self.__video_writer, "not opened."
         self.__video_writer.write(image)
-
 
 class OpenCvWriteProcessor(FrameReader):
     __slots__ = ( 'path', 'logger', '__writer' )
