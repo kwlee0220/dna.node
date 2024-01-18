@@ -14,8 +14,8 @@ from .node_track import NodeTrack
 from .world_coord_localizer import WorldCoordinateLocalizer
 
 
-# CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos,polygons,planes,cylinder_table,cuboid_table')
-CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos,polygons,planes')
+CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos,polygons,planes,cylinder_table,cuboid_table')
+# CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos,polygons,planes')
 class WorldCoordinateAttacher(EventNodeImpl):
     def __init__(self, conf:DictConfig, *, logger:Optional[logging.Logger]=None) -> None:
         super().__init__()

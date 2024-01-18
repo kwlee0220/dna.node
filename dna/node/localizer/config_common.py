@@ -4,7 +4,7 @@ from scipy.spatial.transform import Rotation
 from pyproj import Transformer
 import matplotlib.colors as mcolors
 
-def save_camera_config(json_file, cameras, keys_to_save=['focal', 'center', 'distort', 'rvec', 'tvec']):
+def save_camera_config(json_file, cameras, keys_to_save=['name', 'focal', 'center', 'distort', 'rvec', 'tvec']):
     '''Save the multi-camera configuration as a JSON file'''
     with open(json_file, 'w') as f:
         cameras_to_save = []
@@ -135,24 +135,24 @@ def load_config(json_file):
             return config['satellite'], config['cameras'], config['config']
     return {}, [], {}
 
-def load_3d_points(csv_file, trans_code='', origin_idx=-1):
+def load_3d_points(csv_file, trans_code='', origin_id=-1):
     '''Load 3D points (e.g. road markers) from a CSV file'''
     # Read the CSV file
-    idx_pts = np.loadtxt(csv_file, delimiter=',')
-    pts = {int(idx): np.array(pt) for idx, *pt in idx_pts}
+    id_pts = np.loadtxt(csv_file, delimiter=',')
+    pts = {int(id): np.array(pt) for id, *pt in id_pts}
 
     # Transform the given data to the specific coordinate
     if trans_code:
         transformer = Transformer.from_crs('EPSG:4326', trans_code)
-        for idx, (lon, lat, alt) in pts.items():
+        for id, (lon, lat, alt) in pts.items():
             y, x = transformer.transform(lat, lon)
-            pts[idx] = np.array([x, y, float(alt)])
+            pts[id] = np.array([x, y, float(alt)])
 
     # Assign the origin using the given index
-    if origin_idx >= 0:
-        origin = pts[origin_idx]
-        for idx, pt in pts.items():
-            pts[idx] = pt - origin
+    if origin_id >= 0:
+        origin = pts[origin_id]
+        for id, pt in pts.items():
+            pts[id] = pt - origin
     return pts
 
 def conv_pixel2meter(pt, origin_pixel, meter_per_pixel):
@@ -174,20 +174,20 @@ def conv_meter2pixel(pt, origin_pixel, meter_per_pixel):
         return np.array([u, v])
     return [u, v]
 
-def load_3d_points_from_satellite(json_file, origin_idx=-1):
+def load_3d_points_from_satellite(json_file, origin_id=-1):
     '''Load 3D points (e.g. road markers) from 2D points defined on the satellite image'''
     satellite = load_satellite_config(json_file)
-    if ('idx_pts' in satellite) and ('meter_per_pixel' in satellite):
+    if ('id_pts' in satellite) and ('meter_per_pixel' in satellite):
         # Copy points from the given 'satellite'
         pts = {}
-        for idx, u, v in satellite['idx_pts']:
-            pts[int(idx)] = satellite['meter_per_pixel'] * np.array([u, -v, 0])
+        for id, u, v in satellite['id_pts']:
+            pts[int(id)] = satellite['meter_per_pixel'] * np.array([u, -v, 0])
 
         # Assign the origin using the given index
-        if origin_idx >= 0:
-            origin = pts[origin_idx]
-            for idx, pt in pts.items():
-                pts[idx] = pt - origin
+        if origin_id >= 0:
+            origin = pts[origin_id]
+            for id, pt in pts.items():
+                pts[id] = pt - origin
         return pts
 
 def get_marker_palette(int_type=False, bgr=False):
@@ -205,7 +205,7 @@ def get_marker_palette(int_type=False, bgr=False):
 
 if __name__ == '__main__':
     # Test 'load_3d_points()'
-    markers3d = load_3d_points('data/ETRITestbed/markers45_ICTWAY+MMS.csv', trans_code='EPSG:5186', origin_idx=23)
+    markers3d = load_3d_points('data/ETRITestbed/markers45_QGIS+MMS.csv', trans_code='EPSG:5186', origin_id=23)
 
     # Test 'load_3d_points_satellit()'
-    markers3d_sate = load_3d_points_from_satellite('data/ETRITestbed/markers45_satellite.json', origin_idx=23)
+    markers3d_sate = load_3d_points_from_satellite('data/ETRITestbed/markers45_satellite.json', origin_id=23)

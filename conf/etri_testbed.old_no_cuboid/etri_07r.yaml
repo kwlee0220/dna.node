@@ -1,0 +1,45 @@
+id: etri:07
+
+camera:
+  # uri: data/2023/etri_08.mp4
+  uri: output/extended_1/etri_08.mp4
+  sync: False
+  # begin_frame: 80
+  init_ts: 0
+
+tracker:
+  drop_border_detections: true
+  draw: ["tracks", "track_zones", "exit_zones"]
+  track_zones:
+    - [[163, 141], [365, 124], [1281, 650], [1277, 960], [440, 961]]
+  exit_zones:
+    - [[160, 142], [370, 125], [396, 89], [125, 109]]  # 동력동 방향
+    - [[199, 244], [441, 959], [150, 959], [66, 258]] # 7동 건물 입구
+
+publishing:
+  refine_tracks:
+    buffer_size: 15
+    buffer_timeout: 2
+  min_path_length: 20
+  attach_world_coordinates:
+    camera_geometry: conf/etri_testbed/localization_etri_testbed.json
+    camera_index: 6
+  zone_pipeline:
+    draw: true
+    zones:
+      A: [[149, 160], [435, 135]]   # 동력동 방향
+      B: [[144, 200], [480, 164]]   # 7동 정문 방향
+  reid_features:
+    # model_file: models/cnu/cnu_reid_model.pth
+    # distinct_distance: 0.1
+    distinct_distance: 0.4
+    min_crop_size: 60x35
+    max_iou: 0.2
+
+  publish_kafka:
+    publish_node_tracks:
+      kafka_brokers: [localhost:9092]
+      topic: 'node-tracks'
+    publish_track_features:
+      kafka_brokers: [localhost:9092]
+      topic: 'track-features'

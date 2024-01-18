@@ -1,0 +1,47 @@
+id: etri:03
+
+camera:
+  uri: output/extended/etri_03.mp4
+  sync: False
+  init_ts: 0
+
+tracker:
+  model_file: models/deepsort/model640.pt
+  drop_border_detections: true
+  # draw: ["tracks"]
+  draw: ["tracks", "track_zones", "exit_zones", "trails"]
+  track_zones:
+    - [[165, 114], [455, 82], [1279, 307], [1278, 958], [968, 959], [309, 265], [223, 238], [166, 125]]
+  exit_zones:
+    - [[155, 116], [464, 82], [378, 51], [140, 69]]
+    - [[159, 107], [227, 243], [150, 254], [109, 105]] # 정문 방향
+
+publishing:
+  refine_tracks:
+    buffer_size: 15
+    buffer_timeout: 2
+  min_path_length: 20
+  attach_world_coordinates:
+    camera_geometry: conf/etri_testbed/localization_etri_testbed.json
+    camera_index: 2
+    contact_point: NearBottom
+  zone_pipeline:
+    draw: true
+    zones:
+      A: [[155, 122], [493, 87]]    # 윗쪽 방향
+      B: [[331, 341], [918, 173], [1195, 247], [624, 749], [331, 341]]  # 7동 입구 방향
+      C: [[155, 116], [196, 119], [262, 234], [217, 265], [155, 116]]    # 정문 방향
+  reid_features:
+    # model_file: models/cnu/cnu_reid_model.pth
+    # distinct_distance: 0.1
+    distinct_distance: 0.35
+    min_crop_size: 60x35
+    max_iou: 0.2
+
+  publish_kafka:
+    publish_node_tracks:
+      kafka_brokers: [localhost:9092]
+      topic: 'node-tracks'
+    publish_track_features:
+      kafka_brokers: [localhost:9092]
+      topic: 'track-features'

@@ -1,0 +1,46 @@
+id: etri:03
+
+camera:
+  # uri: data/2023/etri_03.mp4
+  uri: output/extended/etri_03.mp4
+  sync: False
+  begin_frame: 3000
+  # end_frame: 100
+  init_ts: 0
+
+tracker:
+  model_file: models/deepsort/model640.pt
+  drop_border_detections: true
+  draw: ["tracks", "track_zones", "exit_zones"]
+  track_zones:
+    - [[124, 52], [390, 24], [1279, 298], [1278, 958], [968, 959], [273, 225], [199, 222]]
+  magnifying_zones:
+    - [60, 25, 700, 665]
+  exit_zones:
+    - [[104, 55], [411, 22], [383, 6], [88, 32]]  # 윗쪽 방향
+    - [[120, 40], [202, 228], [51, 240], [21, 49]] # 정문 방향
+
+publishing:
+  refine_tracks:
+    buffer_size: 15
+    buffer_timeout: 2
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: conf/etri_testbed/localization_etri_testbed.json
+    camera_index: 2
+  zone_pipeline:
+    draw: true
+    zones:
+      A: [[136, 92], [464, 56]]    # 윗쪽 방향
+      B: [[373, 403], [947, 158]]  # 7동 입구 방향
+      C: [[307, 243], [182, 100], [122, 95]]    # 정문 방향
+
+  plugins:
+    kafka_brokers: [localhost:9092]
+    publish_tracks:
+      topic: 'node-tracks'
+    publish_features:
+      topic: 'track-features'
+      distinct_distance: 0.35
+      min_crop_size: 60x35
+      max_iou: 0.2

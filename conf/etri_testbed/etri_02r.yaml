@@ -21,6 +21,7 @@ publishing:
   attach_world_coordinates:
     camera_geometry: conf/etri_testbed/localization_etri_testbed.json
     camera_index: 1
+    contact_point: NearBottom
   zone_pipeline:
     draw: true
     zones:

@@ -1,0 +1,50 @@
+id: etri:06
+
+camera:
+  uri: output/extended/etri_06.mp4
+  sync: False
+  init_ts: 0
+
+tracker:
+  draw: ["tracks", "track_zones", "exit_zones", "trails"]
+  max_age: 10
+  drop_border_detections: true
+  track_zones:
+    - [[1492, 147], [1144, 218], [758, 237], [396, 196], [225, 261], [814, 1079], [1923, 1082], [1921, 514], [1618, 322], [1687, 205]]
+    # - [[1492, 147], [1144, 218], [758, 237], [502, 203], [384, 245], [364, 283], [374, 316], [299, 410],
+    #   [814, 1079], [1923, 1082], [1921, 514], [1618, 322], [1687, 205]]
+  magnifying_zones:
+    - [170, 130, 810, 770]
+  exit_zones:
+    - [[405, 194], [226, 262], [214, 245], [389, 182]]  # 7동 진입로
+    # - [[561, 209], [352, 288], [301, 237], [441, 160]] # 7동 진입로
+    - [[1686, 212], [1471, 148], [1505, 120], [1703, 179]]    # 테니스장 출구
+
+publishing:
+  refine_tracks:
+    buffer_size: 10
+    buffer_timeout: 1.2
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: conf/etri_testbed/localization_etri_testbed.json
+    camera_index: 5
+    contact_point: NearBottom
+  zone_pipeline:
+    draw: true
+    zones:
+      A: [[895, 209], [876, 407], [443, 644], [231, 288], [493, 191], [895, 209]]
+      # A: [[895, 209], [876, 407], [443, 644], [307, 424], [390, 336], [392, 257], [520, 186], [895, 209]]
+      D: [[1457, 140], [1702, 211], [1577, 404], [942, 202], [1253, 179], [1457, 140]]
+      E: [[1848, 388], [1336, 501], [492, 781], [755, 1078], [1921, 1080], [1920, 407], [1848, 388]]
+  # reid_features:
+  #   distinct_distance: 0.4
+  #   min_crop_size: 60x35
+  #   max_iou: 0.2
+
+  publish_kafka:
+    publish_node_tracks:
+      kafka_brokers: [localhost:9092]
+      topic: 'node-tracks'
+    # publish_track_features:
+    #   kafka_brokers: [localhost:9092]
+    #   topic: 'track-features'

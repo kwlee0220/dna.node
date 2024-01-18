@@ -25,7 +25,7 @@ class ContactPointType(Enum):
 
 
 _BASE_EPSG = 'EPSG:5186'
-CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos,polygons,planes')
+CameraGeometry = namedtuple('CameraGeometry', 'K,distort,ori,pos,polygons,planes,cylinder_table,cuboid_table')
 class WorldCoordinateLocalizer:
     def __init__(self, config_file:str, camera_index:int, epsg_code:str=_BASE_EPSG,
                  *,
@@ -36,7 +36,8 @@ class WorldCoordinateLocalizer:
             camera_params = cameras[camera_index]
             self.geometry = CameraGeometry(camera_params['K'], camera_params['distort'],
                                             camera_params['ori'], camera_params['pos'],
-                                            camera_params['polygons'], self.satellite['planes'])
+                                            camera_params['polygons'], self.satellite['planes'],
+                                            camera_params['cylinder_table'], camera_params['cuboid_table'])
         except Exception as e:
             if logger :
                 logger.error(f'fails to load localization config: config_file={config_file}')

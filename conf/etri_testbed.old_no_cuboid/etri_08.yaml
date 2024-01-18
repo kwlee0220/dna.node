@@ -1,0 +1,51 @@
+id: etri:08
+
+camera:
+  uri: output/extended/etri_08.mp4
+  sync: False
+  # begin_frame: 950
+  init_ts: 0
+
+tracker:
+  draw: ["tracks", "track_zones", "exit_zones", "trails"]
+  max_age: 20
+  drop_border_detections: true
+  detection_max_size: [250, 250]
+  track_zones:
+    - [[1660, 268], [978, 761], [764, 815], [643, 811], [338, 621], [155, 717], [645, 1081],
+      [988, 1081], [1160, 905], [1195, 898], [1785, 324]]
+  # magnifying_zones:
+  #   - [450, 440, 1090, 1080]
+  exit_zones:
+    - [[120, 736], [368, 605], [332, 566], [66, 709]]  # 동력동 입구 방향
+    - [[1795, 328], [1830, 304], [1677, 231], [1644, 261]]  # 정문 방향
+    - [[1224, 935], [1165, 901], [988, 1080], [614, 1081], [616, 1106], [1071, 1104]]  # 7동 입구 방향
+  stable_zones:
+    - [[1215, 924], [1078, 833], [1720, 305], [1791, 338]]
+
+publishing:
+  refine_tracks:
+    buffer_size: 27
+    buffer_timeout: 3
+  min_path_length: 20
+  attach_world_coordinates:
+    camera_geometry: conf/etri_testbed/localization_etri_testbed.json
+    camera_index: 7
+  zone_pipeline:
+    draw: true
+    zones:
+      A: [[1672, 472], [1783, 357], [1623, 280], [1478, 390], [1672, 472]]  # 정문 방향
+      B: [[594, 903], [947, 928], [1155, 909], [1259, 911], [1109, 1079], [443, 1079], [442, 975], [594, 903]] # 7동 방향
+      C: [[209, 776], [455, 634], [615, 729], [384, 915]] # 동력동 방향
+  # reid_features:
+  #   distinct_distance: 0.35
+  #   min_crop_size: 60x35
+  #   max_iou: 0.2
+
+  publish_kafka:
+    publish_node_tracks:
+      kafka_brokers: [localhost:9092]
+      topic: 'node-tracks'
+    # publish_track_features:
+    #   kafka_brokers: [localhost:9092]
+    #   topic: 'track-features'

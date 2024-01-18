@@ -1,0 +1,42 @@
+id: etri:02
+
+camera:
+  uri: output/extended/etri_02.mp4
+  sync: False
+  init_ts: 0
+
+tracker:
+  drop_border_detections: true
+  draw: ["tracks", "track_zones", "exit_zones", "trails"]
+  track_zones:
+    - [[815, 956], [1003, 197], [837, 195], [1, 585], [1, 960]]
+  exit_zones:
+    - [[847, 180], [1010, 180], [1003, 198], [836, 196]]  # 12동쪽 방향
+
+publishing:
+  refine_tracks:
+    buffer_size: 10
+    buffer_timeout: 1.1
+  min_path_length: 10
+  attach_world_coordinates:
+    camera_geometry: conf/etri_testbed/localization_etri_testbed.json
+    camera_index: 1
+  zone_pipeline:
+    draw: true
+    zones:
+      A: [[800, 208], [1010, 215]]  # 12동 방향
+      B: [[350, 443], [1000, 504]]   # 7동 방향
+  reid_features:
+    # model_file: models/cnu/cnu_reid_model.pth
+    # distinct_distance: 0.1
+    distinct_distance: 0.35
+    min_crop_size: 60x35
+    max_iou: 0.2
+
+  publish_kafka:
+    publish_node_tracks:
+      kafka_brokers: [localhost:9092]
+      topic: 'node-tracks'
+    publish_track_features:
+      kafka_brokers: [localhost:9092]
+      topic: 'track-features'

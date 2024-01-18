@@ -1,0 +1,52 @@
+id: etri:05
+
+camera:
+  # uri: output/extended/etri_05.mp4
+  uri: D:/Dropbox/Temp/20231030T0900-20231030T0910/videos/etri_05.mp4
+  sync: False
+  init_ts: 0
+
+tracker:
+  model_file: models/deepsort/model640.pt
+  drop_border_detections: true
+  draw: ["tracks", "track_zones", "exit_zones", "trails"]
+  track_zones:
+    - [[85, 593], [674, 367], [735, 333], [725, 175], [1245, 258], [1677, 384], [1677, 557], [1420, 534], [1187, 933], [235, 876]]
+  exit_zones:
+    - [[750, 333], [552, 339], [555, 176], [740, 175]]  # 12동 방향
+    - [1675, 388, 1900, 570]  # 7동 방향
+    # - [[103, 521], [347, 822], [372, 1078], [284, 1079], [0, 1080], [2, 521]] # 정문 방향
+
+publishing:
+  refine_tracks:
+    buffer_size: 15
+    buffer_timeout: 1.7
+  min_path_length: 15
+  attach_world_coordinates:
+    camera_geometry: conf/etri_testbed/localization_etri_testbed.json
+    camera_index: 4
+    contact_point: NearBottom
+  # stabilization:
+  #   look_ahead: 10
+  #   smoothing_factor: 1.0
+  zone_pipeline:
+    draw: true
+    # zone_seq_log: output/zone_seqs.csv
+    zones:
+      A: [[1126, 249], [660, 194], [644, 333], [937, 349], [1126, 249]]
+      B: [[1245, 273], [1345, 545], [1761, 561], [1806, 412], [1245, 273]]
+      C: [[609, 358], [1388, 584], [1165, 1064], [177, 936], [40, 530], [609, 358]]
+  reid_features:
+    # model_file: models/cnu/cnu_reid_model.pth
+    # distinct_distance: 0.1
+    distinct_distance: 0.35
+    min_crop_size: 80x80
+    max_iou: 0.2
+
+  publish_kafka:
+    publish_node_tracks:
+      kafka_brokers: [localhost:9092]
+      topic: 'node-tracks'
+    publish_track_features:
+      kafka_brokers: [localhost:9092]
+      topic: 'track-features'
