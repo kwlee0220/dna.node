@@ -19,6 +19,8 @@ def parse_true_false_string(truth:str):
     
 def add_image_processor_arguments(parser:argparse.ArgumentParser) -> None:
     parser.add_argument("--camera", metavar="uri", default=argparse.SUPPRESS, help="target camera uri")
+    parser.add_argument("--image_size", metavar="image size", default=argparse.SUPPRESS,
+                        help="captured image size (eg. 640x480)")
     parser.add_argument("--init_ts", metavar="timestamp", default=argparse.SUPPRESS,
                         help="initial timestamp (eg. 0, now)")
     parser.add_argument("--sync", action='store_true')

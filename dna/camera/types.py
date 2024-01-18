@@ -28,7 +28,7 @@ class Frame:
     
 
 class CameraOptions(UserDict):
-    KEYS = { 'fps', 'sync', 'init_ts', 'begin_frame', 'end_frame' }
+    KEYS = { 'image_size', 'fps', 'sync', 'init_ts', 'begin_frame', 'end_frame' }
     
     def __init__(self, **options):
         super().__init__()
@@ -41,6 +41,9 @@ class CameraOptions(UserDict):
                 
     def __setitem__(self, key:str, item:Any) -> None:
         match key:
+            case 'image_size':
+                assert isinstance(item, str|Size2di)
+                self.data['image_size'] = Size2di.parse_string(item) if isinstance(item, str) else item
             case 'fps':
                 assert isinstance(item, int)
                 self.data['fps'] = item

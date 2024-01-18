@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Any
+from typing import Optional, Any, cast
 
 import cv2
 
@@ -38,36 +38,23 @@ class OpenCvCamera(Camera):
         super().__init__()
 
         self.__uri = camera_uri
-        self.__image_size:Optional[Size2di] = options.get('image_size')
-        self.__fps:Optional[int] = options.get('fps')
         self.__sync:bool = options.get('sync', True)
         self.__init_ts_expr:str = options.get('init_ts', 'open')
         
+        self.__image_size = options.get('image_size')
+        self.__fps = options.get('fps')
+        
     def open(self) -> OpenCvImageCapture:
-        return OpenCvImageCapture(self, capture=cv2.VideoCapture(self.uri))
+        return OpenCvImageCapture(self, capture=self._create_video_capture())
         
     @property
     def uri(self) -> str:
         return self.__uri
         
-    @property
-    def image_size(self) -> Size2di:
-        if self.__image_size is None:
-            cap = cv2.VideoCapture(self.uri)
-            self.__image_size = _get_image_size(cap)
-            self.__fps = _get_fps(cap)
-            cap.release()
-        assert isinstance(self.__image_size, Size2di)
+    def image_size(self) -> Optional[Size2di]:
         return self.__image_size
         
-    @property
-    def fps(self) -> int:
-        if self.__fps is None:
-            cap = cv2.VideoCapture(self.uri)
-            self.__image_size = _get_image_size(cap)
-            self.__fps = _get_fps(cap)
-            cap.release()
-        assert isinstance(self.__fps, int)
+    def fps(self) -> Optional[int]:
         return self.__fps
         
     @property
@@ -77,31 +64,45 @@ class OpenCvCamera(Camera):
     @property
     def init_ts_expr(self) -> str:
         return self.__init_ts_expr
+    
+    def _create_video_capture(self) -> cv2.VideoCapture:
+        if self.uri.isnumeric():
+            return cv2.VideoCapture(int(self.uri))
+        else:
+            return cv2.VideoCapture(self.uri)
 
 
 class OpenCvImageCapture(SyncableImageCapture):
-    __slots__ = ( '__camera', '__capture', '__image_size' )
+    __slots__ = ( '__camera', '__capture', '__image_size', '__fps', '__opened' )
 
     def __init__(self, camera:OpenCvCamera, capture:cv2.VideoCapture, init_frame_index:int=1) -> None:
-        super().__init__(fps=camera.fps, sync=camera.sync, init_ts_expr=camera.init_ts_expr, init_frame_index=init_frame_index)
+        super().__init__(init_ts_expr=camera.init_ts_expr, init_frame_index=init_frame_index)
         
         if capture is None:
             raise ValueError(f'cv2.VideoCapture is invalid')
         
         self.__camera = camera
-        self.__capture:Optional[cv2.VideoCapture] = capture            # None if closed
-        self.__image_size = _get_image_size(capture)
+        self.__capture = capture            # None if closed
+        self.__image_size = camera.image_size()
+        if self.__image_size is None:
+            self.__image_size = _get_image_size(capture)
+        else:
+            _set_image_size(capture, self.__image_size)
+        self.__fps = camera.fps()
+        if self.__fps is None:
+            self.__fps = _get_fps(capture)
+        self.__opened = True
 
     def close(self) -> None:
-        if self.__capture:
+        if self.__opened:
             self.__capture.release()
-            self.__capture = None
+            self.__opened = False
             
     def __iter__(self) -> OpenCvImageCapture:
         return self
 
     def is_open(self) -> bool:
-        return self.__capture is not None
+        return self.__opened
 
     @property
     def camera(self) -> OpenCvCamera:
@@ -109,12 +110,20 @@ class OpenCvImageCapture(SyncableImageCapture):
     
     @property
     def video_capture(self) -> cv2.VideoCapture:
-        assert self.__capture is not None
+        assert self.__opened
         return self.__capture
 
     @property
     def image_size(self) -> Size2di:
         return self.__image_size
+
+    @property
+    def fps(self) -> int:
+        return self.__fps
+
+    @property
+    def sync(self) -> bool:
+        return False
 
     @property
     def repr_str(self) -> str:
@@ -140,7 +149,7 @@ class VideoFile(OpenCvCamera):
         self.__end_frame:Optional[int] = options.get('end_frame')
         
     def open(self) -> VideoFileCapture:
-        capture = cv2.VideoCapture(self.uri)
+        capture = self._create_video_capture()
         if not capture.isOpened():
             raise ValueError(f"fails to open VideFile: {self.uri}")
         return VideoFileCapture(self, capture)

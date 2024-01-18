@@ -70,7 +70,7 @@ class FFMPEGCameraCapture(SyncableImageCapture):
     __slots__ = ( '__camera', '__process', '__image_bytes' )
 
     def __init__(self, camera:FFMPEGCamera, cap_info, pipeline) -> None:
-        super().__init__(fps=camera.fps, sync=camera.sync, init_ts_expr=camera.init_ts_expr, init_frame_index=1)
+        super().__init__(init_ts_expr=camera.init_ts_expr, init_frame_index=1)
         
         self.__camera = camera
         self.__process = pipeline.run_async(pipe_stdout=True)
@@ -91,8 +91,16 @@ class FFMPEGCameraCapture(SyncableImageCapture):
         return self.__camera
 
     @property
-    def image_size(self) -> Size2d:
+    def image_size(self) -> Size2di:
         return self.__camera.image_size
+
+    @property
+    def fps(self) -> int:
+        return self.camera.fps
+
+    @property
+    def sync(self) -> bool:
+        return self.camera.sync
             
     def __iter__(self) -> FFMPEGCameraCapture:
         return self

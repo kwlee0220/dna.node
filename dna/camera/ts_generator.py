@@ -33,7 +33,6 @@ class TimestampGenerator:
         
         now = utc_now_millis()
         
-        # TS_ON_OPEN Ehsms 
         if self.type == InitialTimestamp.TS_ON_OPEN or self.type == InitialTimestamp.REALTIME:
             self.__init_ts = now
         # 매 frame마다 ts를 생성할 때 보정용으로 사용함.
