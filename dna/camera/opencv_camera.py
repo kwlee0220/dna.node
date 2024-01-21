@@ -83,13 +83,15 @@ class OpenCvImageCapture(SyncableImageCapture):
         
         self.__camera = camera
         self.__capture = capture            # None if closed
-        self.__image_size = camera.image_size()
-        if self.__image_size is None:
+        
+        img_size = camera.image_size()
+        if img_size is None:
             self.__image_size = _get_image_size(capture)
         else:
-            _set_image_size(capture, self.__image_size)
-        self.__fps = camera.fps()
-        if self.__fps is None:
+            _set_image_size(capture, img_size)
+            
+        fps = camera.fps()
+        if fps is None:
             self.__fps = _get_fps(capture)
         self.__opened = True
 
@@ -182,6 +184,10 @@ class VideoFileCapture(OpenCvImageCapture):
         if self.__end_frame is not None and (self.frame_index+1) >= self.__end_frame:
             raise StopIteration()
         return super().__next__()
+
+    @property
+    def sync(self) -> bool:
+        return self.camera.sync
 
     @property
     def total_frame_count(self) -> int:
