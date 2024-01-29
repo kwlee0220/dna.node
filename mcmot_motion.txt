@@ -4,7 +4,7 @@ set LIVE=rtsp://admin:dnabased24@129.254.82.33:558/LiveChannel
 set PLAYBACK=rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel
 set CONF=conf/etri_testbed
 
-set DATE=20231110
+set DATE=20231024
 set START=0900
 set END=0930
 set START_TS=%DATE%T%START%00

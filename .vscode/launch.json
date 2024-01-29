@@ -31,7 +31,7 @@
                 // "--camera", "rtsp://admin:dnabased24@129.254.82.33:558/PlaybackChannel/4/media.smp/start=20231030T090000&end=20231030T090500",
                 "--output_video", "output/output.mp4",   // -v <file>
                 // "--crf", "ffmpeg",
-                "--output", "output/output.pickle",
+                "--output", "output/output.json",
                 // "--begin_frame", "330",
                 // "--zseq_log", "output/zseq.csv",
                 // "--sync",

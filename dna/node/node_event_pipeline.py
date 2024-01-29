@@ -18,7 +18,7 @@ from .world_coord_attach import WorldCoordinateAttacher
 from .stabilizer import TrackletSmoothProcessor
 from .reid_features import PublishReIDFeatures
 from .zone.zone_pipeline2 import ZonePipeline2
-from .utils import NodeEventWriter, GroupByFrameIndex, MinFrameIndexGauge
+from .utils import NodeEventJsonWriter, NodeEventWriter, GroupByFrameIndex, MinFrameIndexGauge
 
 _DEFAULT_BUFFER_SIZE = 30
 _DEFAULT_BUFFER_TIMEOUT = 5.0
@@ -204,13 +204,21 @@ class NodeEventPipeline(EvenNodePipeline, TrackProcessor):
         publisher = KafkaEventPublisher(kafka_brokers=kafka_brokers, topic=topic, logger=logger)
         reid_features.add_listener(publisher)
 
-    def load_output_writer(self, reid_features:Optional[PublishReIDFeatures]) -> Optional[NodeEventWriter]:
+    def load_output_writer(self, reid_features:Optional[PublishReIDFeatures]) -> None:
+        from pathlib import Path
+        
         output_file = config.get(self.conf, 'output')
         if output_file is None:
             return None
-            
-        writer = NodeEventWriter(output_file)
-        self.add_listener(writer)
-        if reid_features:
-            reid_features.add_listener(writer)
-        return writer
+        
+        suffix = Path(output_file).suffix
+        if suffix == '.pickle':
+            writer = NodeEventWriter(output_file)
+            self.add_listener(writer)
+            if reid_features:
+                reid_features.add_listener(writer)
+        elif suffix == '.json':
+            writer = NodeEventJsonWriter(output_file)
+            self.add_listener(writer)
+        else:
+            raise ValueError(f"unknown extension: {output_file}")

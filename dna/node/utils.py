@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional, Any, Protocol, runtime_checkable
+from typing import Optional, Any, Protocol, runtime_checkable, IO
 from collections import defaultdict
 from collections.abc import Callable, Generator
 from pathlib import Path
@@ -37,6 +37,25 @@ class NodeEventWriter(EventListener):
             case NodeTrack() | TrackFeature():
                 pickle.dump(ev, self.fp)
             case SilentFrame():
+                pass
+            case _:
+                raise ValueError(f"unexpected event: {ev}")
+            
+class NodeEventJsonWriter(EventListener):
+    def __init__(self, file_path: str) -> None:
+        self.file_path = file_path
+        
+        Path(file_path).parent.mkdir(parents=True, exist_ok=True)
+        self.fp = open(file_path, 'w')
+
+    def on_completed(self) -> None:
+        self.fp.close()
+
+    def handle_event(self, ev:NodeTrack|TrackFeature) -> None:
+        match ev:
+            case NodeTrack():
+                self.fp.write(ev.to_json() + '\n')
+            case SilentFrame() | TrackFeature():
                 pass
             case _:
                 raise ValueError(f"unexpected event: {ev}")

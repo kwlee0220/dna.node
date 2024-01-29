@@ -29,7 +29,7 @@ ffmpeg -nostdin -hide_banner -rtsp_transport tcp -i "%PLAYBACK%/3/media.smp/star
 
 
 REM =============================== [Analyze node events] ===============================
-dna_node %CONF%/etri_01r.yaml --camera %VIDEO%/etri_01.mp4 --output %OUTPUT%/etri_01r_event.pickle --output_video %VIDEO%/etri_01r_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
+dna_node %CONF%/etri_01r.yaml --camera %VIDEO%/etri_01.mp4 --output %OUTPUT%/etri_01r_event.json --output_video %VIDEO%/etri_01r_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
 dna_node %CONF%/etri_02.yaml --camera %VIDEO%/etri_02.mp4 --output %OUTPUT%/etri_02_event.pickle --output_video %VIDEO%/etri_02_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka
 
 dna_node %CONF%/etri_06r.yaml --camera %VIDEO%/etri_06.mp4 --output %OUTPUT%/etri_06r_event.pickle --output_video %VIDEO%/etri_06r_track.mp4 --progress --title frame --init_ts %START_TS% --silent_kafka

@@ -200,6 +200,8 @@ class ImageProcessor(AbstractExecution):
                 self.final_frame_readers.append(self.show_processor)
             
             # 등록된 모든 frame 처리기를 초기화시킨다.
+            if self.frame_processor:
+                self.frame_processor.open(self)
             for proc in [*self.clean_frame_readers, *self.frame_updaters, *self.final_frame_readers]:
                 proc.open(self)
             
@@ -228,6 +230,8 @@ class ImageProcessor(AbstractExecution):
                 # 등록된 모든 frame 처리기를 종료화시킨다.
                 for proc in [*self.clean_frame_readers, *self.frame_updaters, *self.final_frame_readers]:
                     with suppress(Exception): proc.close()
+                if self.frame_processor:
+                    self.frame_processor.close()
                     
         return Result(elapsed_ms=utc_now_millis() - started_ms,
                       frame_count=capture_count,

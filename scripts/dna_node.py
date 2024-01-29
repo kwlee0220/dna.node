@@ -20,7 +20,7 @@ def define_args(parser):
     parser.add_argument("conf", metavar="path", help="node configuration file path")
     add_image_processor_arguments(parser)
 
-    parser.add_argument("--output", metavar="json file", help="track event file.", default=None)
+    parser.add_argument("--output", metavar="pickle file", help="track/feature event pickle file.", default=None)
     parser.add_argument("--zseq_log", metavar="csv file", help="create Zone Sequence log file.", default=None)
     parser.add_argument("--kafka_brokers", nargs='+', metavar="hosts", help="Kafka broker hosts list", default=None)
     parser.add_argument("--silent_kafka", action='store_true')
@@ -51,6 +51,9 @@ def run(args):
     if args.output:
         # 'output'이 설정되어 있으면, track 결과를 frame 단위로 출력할 수 있도록 설정을 수정함.
         config.update(conf, "publishing.output", args.output)
+    # if args.track_output:
+    #     # 'output'이 설정되어 있으면, track 결과를 frame 단위로 출력할 수 있도록 설정을 수정함.
+    #     config.update(conf, "tracker.output", args.track_output)
     if args.zseq_log and config.exists(conf, 'publishing.zone_pipeline'):
         config.update(conf, 'publishing.zone_pipeline.zone_seq_log', args.zseq_log)
     build_node_processor(img_proc, conf)
