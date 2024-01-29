@@ -73,7 +73,7 @@ class OpenCvCamera(Camera):
 
 
 class OpenCvImageCapture(SyncableImageCapture):
-    __slots__ = ( '__camera', '__capture', '__image_size', '__fps', '__opened' )
+    __slots__ = ( '__camera', '__capture', '__image_size', '__fps' )
 
     def __init__(self, camera:OpenCvCamera, capture:cv2.VideoCapture, init_frame_index:int=1) -> None:
         super().__init__(init_ts_expr=camera.init_ts_expr, init_frame_index=init_frame_index)
@@ -93,18 +93,12 @@ class OpenCvImageCapture(SyncableImageCapture):
         fps = camera.fps()
         if fps is None:
             self.__fps = _get_fps(capture)
-        self.__opened = True
 
-    def close(self) -> None:
-        if self.__opened:
-            self.__capture.release()
-            self.__opened = False
+    def close_in_guard(self) -> None:
+        self.__capture.release()
             
     def __iter__(self) -> OpenCvImageCapture:
         return self
-
-    def is_open(self) -> bool:
-        return self.__opened
 
     @property
     def camera(self) -> OpenCvCamera:
@@ -112,7 +106,7 @@ class OpenCvImageCapture(SyncableImageCapture):
     
     @property
     def video_capture(self) -> cv2.VideoCapture:
-        assert self.__opened
+        assert not self.is_closed()
         return self.__capture
 
     @property
@@ -129,7 +123,7 @@ class OpenCvImageCapture(SyncableImageCapture):
 
     @property
     def repr_str(self) -> str:
-        state = 'opened' if self.is_open() else 'closed'
+        state = 'closed' if self.is_closed() else 'opened'
         return f'{state}, size={self.image_size}, fps={self.fps:.0f}/s, sync={self.sync}'
 
     def __repr__(self) -> str:

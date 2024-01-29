@@ -8,7 +8,7 @@ import cv2
 
 from dna import Size2di
 from dna.camera import Image
-from .types import Camera
+from .types import Camera, CameraOptions
 from .utils import SyncableImageCapture
 from dna.support import iterables
 
@@ -21,7 +21,7 @@ def eval_ratio(ratio_str:str) -> float:
 class FFMPEGCamera(Camera):
     __slots__ = '__uri', 'cap_info', '__image_size', '__fps', '__sync', '__pipeline', '__init_ts_expr'
     
-    def __init__(self, uri:str, **options:Any):
+    def __init__(self, uri:str, options:CameraOptions):
         super().__init__()
 
         self.__uri = uri
@@ -77,14 +77,9 @@ class FFMPEGCameraCapture(SyncableImageCapture):
         self.__image_bytes = camera.image_size.area() * 3
         self.__shape = [self.image_size.height, self.image_size.width, 3]
 
-    def close(self) -> None:
-        if self.__process:
-            self.__process.stdout.close()
-            self.__process.wait()
-            self.__process = None
-
-    def is_open(self) -> bool:
-        return self.__process is not None
+    def close_in_guard(self) -> None:
+        self.__process.stdout.close()
+        self.__process.wait()
 
     @property
     def camera(self) -> FFMPEGCamera:
@@ -107,7 +102,7 @@ class FFMPEGCameraCapture(SyncableImageCapture):
 
     @property
     def repr_str(self) -> str:
-        state = 'opened' if self.is_open() else 'closed'
+        state = 'closed' if self.is_closed() else 'opened'
         return f'{state}, size={self.image_size}, fps={self.fps:.0f}/s'
 
     def __repr__(self) -> str:

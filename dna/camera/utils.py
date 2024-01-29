@@ -2,17 +2,30 @@ from __future__ import annotations
 from abc import abstractmethod
 from typing import Optional
 
+from contextlib import suppress
+
 from .types import Image, Frame, ImageCapture
 from .ts_generator import TimestampGenerator
 
 
 class SyncableImageCapture(ImageCapture):
-    __slots__ =  ( '__frame_index', '__ts_gen', 'init_ts_expr')
+    __slots__ =  ( '__frame_index', '__ts_gen', 'init_ts_expr', '__closed')
 
     def __init__(self, init_ts_expr:str, init_frame_index:int) -> None:
         self.__frame_index = init_frame_index-1
         self.init_ts_expr = init_ts_expr
         self.__ts_gen:Optional[TimestampGenerator] = None
+            
+    @abstractmethod
+    def close_in_guard(self) -> None: pass
+
+    def close(self) -> None:
+        if not self.__closed:
+            with suppress(Exception): self.close_in_guard()
+            self.__closed = False
+        
+    def is_closed(self) -> bool:
+        return self.__closed
 
     def __next__(self) -> Frame:
         image = self.grab_image()
